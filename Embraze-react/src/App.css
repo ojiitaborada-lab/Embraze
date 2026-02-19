@@ -1,0 +1,29 @@
+/* Removed default styles that interfere with full-screen layout */
+
+/* Marker Popup Close Button Styling */
+.marker-popup .maplibregl-popup-close-button {
+  display: none !important;
+}
+
+.marker-popup .maplibregl-popup-content {
+  padding: 0 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important;
+}
+
+
+/* Smooth bounce animation for markers */
+@keyframes smoothBounce {
+  0%, 100% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+  }
+  50% {
+    transform: translateY(-15px);
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+  }
+}
+
+.smooth-bounce {
+  animation: smoothBounce 1s ease-in-out infinite;
+}
