@@ -15,6 +15,7 @@ import FamilyPanel from './FamilyPanel';
 function SidePanel({ notifications, onCloseNotification, onViewLocation, onNavigate, userProfile, onUpdateProfile, onAskForHelp, onStopHelp, helpActive: parentHelpActive, helpStopped, onSignOut, familyMembers, familyName, onCreateFamily, onJoinFamily, onLeaveFamily, onRemoveMember, onViewMemberLocation, onCreateInviteCode, showToastMessage, onFindMyLocation, onClearAllNotifications }) {
   const [activePanel, setActivePanel] = useState(null); // 'notifications', 'settings', 'family', 'help'
   const [helpTimeout, setHelpTimeout] = useState(null);
+  const [isProcessingHelp, setIsProcessingHelp] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
@@ -138,39 +139,55 @@ function SidePanel({ notifications, onCloseNotification, onViewLocation, onNavig
     }
   };
 
-  const handleAskForHelp = () => {
+  const handleAskForHelp = async () => {
     // Check if on cooldown
     if (cooldownTimeLeft > 0) {
       return; // Button is disabled, do nothing
     }
     
+    // Prevent multiple rapid clicks
+    if (isProcessingHelp) {
+      return;
+    }
+    
     if (parentHelpActive) {
       // Stop help if already active
+      setIsProcessingHelp(true);
+      
       if (helpTimeout) {
         clearTimeout(helpTimeout);
         setHelpTimeout(null);
       }
       if (onStopHelp) {
-        onStopHelp();
+        await onStopHelp();
       }
       
       // Start 30-minute cooldown AFTER stopping
       const cooldownEndTime = Date.now() + (30 * 60 * 1000); // 30 minutes
       setCooldownEnd(cooldownEndTime);
       localStorage.setItem(`helpCooldown_${userProfile.id}`, cooldownEndTime.toString());
+      
+      setIsProcessingHelp(false);
     } else {
       // Activate help (no cooldown yet)
-      onAskForHelp();
+      setIsProcessingHelp(true);
+      
+      await onAskForHelp();
       
       // Auto-deactivate after 30 seconds
-      const timeout = setTimeout(() => {
+      const timeout = setTimeout(async () => {
         if (onStopHelp) {
-          onStopHelp();
+          await onStopHelp();
         }
         setHelpTimeout(null);
       }, 30000);
       
       setHelpTimeout(timeout);
+      
+      // Add a small delay before allowing next click
+      setTimeout(() => {
+        setIsProcessingHelp(false);
+      }, 1000);
     }
   };
 
