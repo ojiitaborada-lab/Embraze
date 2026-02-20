@@ -1,5 +1,16 @@
 @import "tailwindcss";
 
+/* Safe area support for mobile devices */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .safe-area-pb {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .safe-area-bottom {
+    bottom: env(safe-area-inset-bottom);
+  }
+}
+
 /* Ensure full viewport height without scrolling */
 html, body {
   margin: 0;

@@ -1,5 +1,11 @@
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faMapMarkerAlt, faPhone, faTimes, faExclamationTriangle, faRoute, faBell } from '@fortawesome/free-solid-svg-icons';
+import { 
+  MapPinIcon, 
+  PhoneIcon, 
+  XMarkIcon, 
+  ExclamationTriangleIcon, 
+  ArrowTopRightOnSquareIcon, 
+  BellIcon 
+} from '@heroicons/react/24/solid';
 import { Player } from '@lottiefiles/react-lottie-player';
 import noNotificationAnimation from '../assets/No notification.json';
 
@@ -101,19 +107,19 @@ function NotificationPanel({ notifications, onClose, onViewLocation, onNavigate,
                   onClick={() => onClose(notification.id)}
                   className="text-gray-400 hover:text-gray-600 transition-colors p-0.5 hover:bg-gray-100 rounded-full cursor-pointer"
                 >
-                  <FontAwesomeIcon icon={faTimes} className="w-2.5 h-2.5" />
+                  <XMarkIcon className="w-2.5 h-2.5" />
                 </button>
               </div>
 
               {/* Location & Phone */}
               <div className="space-y-1.5 mb-2.5">
                 <div className="flex items-start gap-2 text-[11px]">
-                  <FontAwesomeIcon icon={faMapMarkerAlt} className="w-3 h-3 text-gray-400 mt-0.5 flex-shrink-0" />
+                  <MapPinIcon className="w-3 h-3 text-gray-400 mt-0.5 flex-shrink-0" />
                   <span className="text-gray-600 leading-snug">{notification.address}</span>
                 </div>
                 {notification.phone && (
                   <div className="flex items-center gap-2 text-[11px]">
-                    <FontAwesomeIcon icon={faPhone} className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                    <PhoneIcon className="w-3 h-3 text-gray-400 flex-shrink-0" />
                     <a href={`tel:${notification.phone}`} className="text-blue-600 hover:text-blue-700 font-medium">
                       {notification.phone}
                     </a>
@@ -126,7 +132,7 @@ function NotificationPanel({ notifications, onClose, onViewLocation, onNavigate,
                 <button
                   onClick={() => onViewLocation(notification)}
                   disabled={isStoppedEmergency}
-                  className={`flex-1 py-2 rounded-lg text-[11px] font-semibold transition-all ${
+                  className={`flex-1 py-2 rounded-full text-[11px] font-semibold transition-all ${
                     isStoppedEmergency
                       ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                       : 'bg-blue-500 hover:bg-blue-600 text-white active:scale-95 cursor-pointer'
@@ -137,13 +143,13 @@ function NotificationPanel({ notifications, onClose, onViewLocation, onNavigate,
                 <button
                   onClick={() => onNavigate(notification)}
                   disabled={isStoppedEmergency}
-                  className={`flex-1 py-2 rounded-lg text-[11px] font-semibold transition-all flex items-center justify-center gap-1 ${
+                  className={`flex-1 py-2 rounded-full text-[11px] font-semibold transition-all flex items-center justify-center gap-1 ${
                     isStoppedEmergency
                       ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
                       : 'bg-gray-100 hover:bg-gray-200 text-gray-700 active:scale-95 cursor-pointer'
                   }`}
                 >
-                  <FontAwesomeIcon icon={faRoute} className="w-2.5 h-2.5" />
+                  <ArrowTopRightOnSquareIcon className="w-2.5 h-2.5" />
                   Navigate
                 </button>
               </div>

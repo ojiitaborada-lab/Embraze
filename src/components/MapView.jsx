@@ -1,9 +1,19 @@
 import { useState, useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
 import Map, { Marker, Source, Layer, Popup } from 'react-map-gl/maplibre';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faLocationCrosshairs, faExclamationTriangle, faXmark, faRoute, faChevronDown, faChevronUp, faPhone, faMapMarkerAlt, faUser } from '@fortawesome/free-solid-svg-icons';
+import { 
+  MapPinIcon, 
+  ExclamationTriangleIcon, 
+  XMarkIcon, 
+  ArrowTopRightOnSquareIcon, 
+  ChevronDownIcon, 
+  ChevronUpIcon, 
+  PhoneIcon, 
+  UserIcon
+} from '@heroicons/react/24/solid';
+import { Player } from '@lottiefiles/react-lottie-player';
 import Toast from './Toast';
 import { createEmergencyAlert, stopEmergencyAlert } from '../firebase/services';
+import loadingAnimation from '../../public/Loading.json';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
 const MapView = forwardRef(({ onNewHelpRequest, allHelpPings, userProfile, helpActive, helpStopped, familyMembers = [] }, ref) => {
@@ -21,6 +31,7 @@ const MapView = forwardRef(({ onNewHelpRequest, allHelpPings, userProfile, helpA
   const [toastMessage, setToastMessage] = useState('');
   const [currentAlertId, setCurrentAlertId] = useState(null); // Track current user's alert ID
   const [animatedFamilyPositions, setAnimatedFamilyPositions] = useState({}); // Store animated positions
+  const [isCalculatingRoute, setIsCalculatingRoute] = useState(false); // Loading state for route calculation
   const [viewState, setViewState] = useState({
     longitude: 123.8854,
     latitude: 10.3157,
@@ -230,6 +241,8 @@ const MapView = forwardRef(({ onNewHelpRequest, allHelpPings, userProfile, helpA
 
   // Fetch route from OSRM (free, no API key required)
   const fetchRoute = async (startLat, startLng, endLat, endLng) => {
+    setIsCalculatingRoute(true);
+    
     try {
       const response = await fetch(
         `https://router.project-osrm.org/route/v1/driving/${startLng},${startLat};${endLng},${endLat}?overview=full&geometries=geojson`
@@ -249,7 +262,7 @@ const MapView = forwardRef(({ onNewHelpRequest, allHelpPings, userProfile, helpA
           duration: Math.round(route.duration / 60) // Convert to minutes
         });
         
-        // Show toast
+        // Show success toast
         setToastMessage('Starting navigation');
         setShowToast(true);
         
@@ -271,6 +284,10 @@ const MapView = forwardRef(({ onNewHelpRequest, allHelpPings, userProfile, helpA
       }
     } catch (error) {
       console.error('Error fetching route:', error);
+      setToastMessage('Failed to calculate route');
+      setShowToast(true);
+    } finally {
+      setIsCalculatingRoute(false);
     }
   };
 
@@ -301,15 +318,58 @@ const MapView = forwardRef(({ onNewHelpRequest, allHelpPings, userProfile, helpA
     setShowToast(true);
   };
 
-  // Reverse geocoding function (simplified)
+  // Reverse geocoding function with timeout and better error handling
   const getAddressFromCoords = async (lat, lng) => {
     try {
+      // Add timeout to prevent hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+      
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+        {
+          signal: controller.signal,
+          headers: {
+            'User-Agent': 'Embraze Emergency App'
+          }
+        }
       );
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        throw new Error('Geocoding failed');
+      }
+      
       const data = await response.json();
-      return data.display_name || `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+      
+      // Build a more readable address
+      if (data.address) {
+        const parts = [];
+        if (data.address.road) parts.push(data.address.road);
+        if (data.address.suburb || data.address.neighbourhood) {
+          parts.push(data.address.suburb || data.address.neighbourhood);
+        }
+        if (data.address.city || data.address.town || data.address.municipality) {
+          parts.push(data.address.city || data.address.town || data.address.municipality);
+        }
+        if (data.address.state) parts.push(data.address.state);
+        
+        if (parts.length > 0) {
+          return parts.join(', ');
+        }
+      }
+      
+      // Fallback to display_name if address parts not available
+      if (data.display_name) {
+        // Shorten the display name (take first 3 parts)
+        const nameParts = data.display_name.split(',').slice(0, 3);
+        return nameParts.join(',');
+      }
+      
+      return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
     } catch (error) {
+      console.error('Reverse geocoding error:', error);
       return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
     }
   };
@@ -366,6 +426,23 @@ const MapView = forwardRef(({ onNewHelpRequest, allHelpPings, userProfile, helpA
         onClose={() => setShowToast(false)}
         type="success"
       />
+
+      {/* Loading Modal for Route Calculation - Compact */}
+      {isCalculatingRoute && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-5 shadow-2xl flex flex-col items-center gap-2.5">
+            <div className="w-16 h-16">
+              <Player
+                autoplay
+                loop
+                src={loadingAnimation}
+                style={{ height: '100%', width: '100%' }}
+              />
+            </div>
+            <p className="text-gray-700 font-medium text-xs">Calculating route...</p>
+          </div>
+        </div>
+      )}
       
       <Map
         ref={mapRef}
@@ -496,7 +573,7 @@ const MapView = forwardRef(({ onNewHelpRequest, allHelpPings, userProfile, helpA
                   
                   {/* Icon */}
                   <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center justify-center">
-                    <FontAwesomeIcon icon={faExclamationTriangle} className="w-4 h-4 text-white drop-shadow-md" />
+                    <ExclamationTriangleIcon className="w-4 h-4 text-white drop-shadow-md" />
                   </div>
                 </div>
               </button>
@@ -580,7 +657,7 @@ const MapView = forwardRef(({ onNewHelpRequest, allHelpPings, userProfile, helpA
                 onClick={() => setSelectedMarker(null)}
                 className="absolute top-1.5 right-1.5 w-5 h-5 hover:bg-gray-100 rounded-lg flex items-center justify-center transition-all z-10"
               >
-                <FontAwesomeIcon icon={faXmark} className="w-2.5 h-2.5 text-gray-500 hover:text-gray-700 transition-colors" />
+                <XMarkIcon className="w-2.5 h-2.5 text-gray-500 hover:text-gray-700 transition-colors" />
               </button>
               
               <div className="flex items-center gap-2.5 mb-2.5 pr-6">
@@ -628,13 +705,13 @@ const MapView = forwardRef(({ onNewHelpRequest, allHelpPings, userProfile, helpA
               
               <div className="space-y-1.5 mb-2.5">
                 <div className="flex items-start gap-2">
-                  <FontAwesomeIcon icon={faMapMarkerAlt} className="w-3 h-3 text-gray-500 mt-0.5 flex-shrink-0" />
+                  <MapPinIcon className="w-3 h-3 text-gray-500 mt-0.5 flex-shrink-0" />
                   <p className="text-[11px] text-gray-600 flex-1 leading-snug line-clamp-2">{selectedMarker.address}</p>
                 </div>
                 
                 {selectedMarker.phone && (
                   <div className="flex items-center gap-2">
-                    <FontAwesomeIcon icon={faPhone} className="w-3 h-3 text-gray-500 flex-shrink-0" />
+                    <PhoneIcon className="w-3 h-3 text-gray-500 flex-shrink-0" />
                     <a href={`tel:${selectedMarker.phone}`} className="text-[11px] text-blue-600 hover:underline truncate">
                       {selectedMarker.phone}
                     </a>
@@ -645,7 +722,7 @@ const MapView = forwardRef(({ onNewHelpRequest, allHelpPings, userProfile, helpA
               <button
                 onClick={() => handleNavigateFromPopup(selectedMarker)}
                 disabled={selectedMarker.userId === userProfile?.id && !selectedMarker.isFamilyMember}
-                className={`w-full py-2 rounded-lg font-medium transition-all flex items-center justify-center gap-1.5 text-[11px] ${
+                className={`w-full py-2 rounded-full font-medium transition-all flex items-center justify-center gap-1.5 text-[11px] ${
                   selectedMarker.userId === userProfile?.id && !selectedMarker.isFamilyMember
                     ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
                     : selectedMarker.isFamilyMember
@@ -653,7 +730,7 @@ const MapView = forwardRef(({ onNewHelpRequest, allHelpPings, userProfile, helpA
                       : 'bg-blue-500 hover:bg-blue-600 text-white cursor-pointer'
                 }`}
               >
-                <FontAwesomeIcon icon={faRoute} className="w-3 h-3" />
+                <ArrowTopRightOnSquareIcon className="w-3 h-3" />
                 {selectedMarker.userId === userProfile?.id && !selectedMarker.isFamilyMember ? 'Your Alert' : 'Navigate'}
               </button>
               
@@ -682,17 +759,18 @@ const MapView = forwardRef(({ onNewHelpRequest, allHelpPings, userProfile, helpA
           >
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 md:w-7 md:h-7 rounded-full bg-blue-50 flex items-center justify-center">
-                <FontAwesomeIcon icon={faRoute} className="w-2.5 h-2.5 md:w-3 md:h-3 text-blue-500" />
+                <ArrowTopRightOnSquareIcon className="w-2.5 h-2.5 md:w-3 md:h-3 text-blue-500" />
               </div>
               <div className="text-left">
                 <h3 className="font-semibold text-gray-900 text-[11px] md:text-xs leading-tight">{selectedDestination.userName}</h3>
                 <p className="text-[9px] md:text-[10px] text-gray-500">Navigation active</p>
               </div>
             </div>
-            <FontAwesomeIcon 
-              icon={isMinimized ? faChevronUp : faChevronDown} 
-              className="w-2.5 h-2.5 md:w-3 md:h-3 text-gray-400 transition-transform duration-300" 
-            />
+            {isMinimized ? (
+              <ChevronUpIcon className="w-2.5 h-2.5 md:w-3 md:h-3 text-gray-400 transition-transform duration-300" />
+            ) : (
+              <ChevronDownIcon className="w-2.5 h-2.5 md:w-3 md:h-3 text-gray-400 transition-transform duration-300" />
+            )}
           </button>
 
           {/* Panel Content */}
@@ -719,7 +797,7 @@ const MapView = forwardRef(({ onNewHelpRequest, allHelpPings, userProfile, helpA
                 onClick={clearRoute}
                 className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 py-1.5 md:py-2 rounded-lg font-medium transition-all flex items-center justify-center gap-1.5 text-[11px] md:text-xs cursor-pointer active:scale-95"
               >
-                <FontAwesomeIcon icon={faXmark} className="w-2.5 h-2.5 md:w-3 md:h-3" />
+                <XMarkIcon className="w-2.5 h-2.5 md:w-3 md:h-3" />
                 End Navigation
               </button>
             </div>
@@ -727,13 +805,14 @@ const MapView = forwardRef(({ onNewHelpRequest, allHelpPings, userProfile, helpA
         </div>
       )}
 
-      {/* Find My Location Button */}
+      {/* Find My Location Button - Hidden on mobile, visible on desktop */}
       <button 
         onClick={handleFindMyLocation}
-        className="absolute top-4 md:top-6 right-4 md:right-[88px] bg-white/95 backdrop-blur-sm rounded-full p-2.5 md:p-4 shadow-lg hover:shadow-xl transition-all disabled:opacity-50 hover:scale-105 group cursor-pointer z-10"
+        className="hidden md:flex absolute top-4 right-[80px] bg-white/95 backdrop-blur-sm rounded-full p-2 shadow-md hover:shadow-lg transition-all disabled:opacity-50 hover:scale-105 group cursor-pointer z-10"
         disabled={!userLocation}
+        title="Find My Location"
       >
-        <FontAwesomeIcon icon={faLocationCrosshairs} className="w-4 h-4 md:w-5 md:h-5 text-gray-700 group-hover:text-blue-500 transition-colors" />
+        <MapPinIcon className="w-4 h-4 text-gray-700 group-hover:text-blue-500 transition-colors" />
       </button>
     </div>
   );

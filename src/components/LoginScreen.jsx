@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faHandPaper } from '@fortawesome/free-solid-svg-icons';
+import { HandRaisedIcon } from '@heroicons/react/24/solid';
 import { Player } from '@lottiefiles/react-lottie-player';
 import Toast from './Toast';
 import animationData from '../assets/TEHRAN.json';

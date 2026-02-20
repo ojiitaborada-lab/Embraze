@@ -138,12 +138,30 @@ export const subscribeToActiveAlerts = (callback) => {
   
   return onSnapshot(q, (snapshot) => {
     const alerts = [];
+    const now = Date.now();
+    const twentyFourHoursAgo = now - (24 * 60 * 60 * 1000); // 24 hours in milliseconds
+    
     snapshot.forEach((doc) => {
+      const alertData = doc.data();
+      
+      // If alert is stopped, check if it's older than 24 hours
+      if (alertData.status === 'stopped' && alertData.stoppedAt) {
+        const stoppedTime = alertData.stoppedAt.toMillis ? alertData.stoppedAt.toMillis() : alertData.stoppedAt;
+        
+        // Skip alerts stopped more than 24 hours ago
+        if (stoppedTime < twentyFourHoursAgo) {
+          // Optionally delete the old stopped alert from Firestore
+          deleteDoc(doc.ref).catch(err => console.error('Error deleting old alert:', err));
+          return; // Don't include in results
+        }
+      }
+      
       alerts.push({
         id: doc.id,
-        ...doc.data()
+        ...alertData
       });
     });
+    
     callback(alerts);
   }, (error) => {
     console.error('Error listening to alerts:', error);

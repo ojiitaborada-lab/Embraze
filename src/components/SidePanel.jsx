@@ -1,14 +1,31 @@
 import { useState, useEffect } from 'react';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBell, faCircleQuestion, faMoon, faHandPaper, faUserGroup, faTimes, faTriangleExclamation, faLocationCrosshairs } from '@fortawesome/free-solid-svg-icons';
+import { 
+  BellIcon, 
+  QuestionMarkCircleIcon, 
+  MoonIcon, 
+  UserGroupIcon, 
+  XMarkIcon, 
+  ExclamationTriangleIcon, 
+  MapPinIcon
+} from '@heroicons/react/24/solid';
 import NotificationPanel from './NotificationPanel';
 import SettingsPanel from './SettingsPanel';
 import FamilyPanel from './FamilyPanel';
 
-function SidePanel({ notifications, onCloseNotification, onViewLocation, onNavigate, userProfile, onUpdateProfile, onAskForHelp, onStopHelp, helpActive: parentHelpActive, helpStopped, onSignOut, familyMembers, familyName, onCreateFamily, onJoinFamily, onLeaveFamily, onRemoveMember, onViewMemberLocation, onCreateInviteCode, showToastMessage, onFindMyLocation }) {
+function SidePanel({ notifications, onCloseNotification, onViewLocation, onNavigate, userProfile, onUpdateProfile, onAskForHelp, onStopHelp, helpActive: parentHelpActive, helpStopped, onSignOut, familyMembers, familyName, onCreateFamily, onJoinFamily, onLeaveFamily, onRemoveMember, onViewMemberLocation, onCreateInviteCode, showToastMessage, onFindMyLocation, onClearAllNotifications }) {
   const [activePanel, setActivePanel] = useState(null); // 'notifications', 'settings', 'family', 'help'
   const [helpTimeout, setHelpTimeout] = useState(null);
   const [isClosing, setIsClosing] = useState(false);
+  const [touchStart, setTouchStart] = useState(null);
+  const [touchEnd, setTouchEnd] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [cooldownEnd, setCooldownEnd] = useState(() => {
+    // Load cooldown from localStorage
+    const stored = localStorage.getItem(`helpCooldown_${userProfile.id}`);
+    return stored ? parseInt(stored) : null;
+  });
+  const [cooldownTimeLeft, setCooldownTimeLeft] = useState(0);
   
   // Load seen notification IDs from localStorage
   const [seenNotificationIds, setSeenNotificationIds] = useState(() => {
@@ -22,8 +39,81 @@ function SidePanel({ notifications, onCloseNotification, onViewLocation, onNavig
     setTimeout(() => {
       setActivePanel(null);
       setIsClosing(false);
+      setDragOffset(0);
+      setIsDragging(false);
     }, 300); // Match animation duration
   };
+
+  // Swipe down gesture handlers
+  const handleTouchStart = (e) => {
+    const touch = e.touches[0];
+    setTouchStart(touch.clientY);
+    setTouchEnd(null);
+  };
+
+  const handleTouchMove = (e) => {
+    if (!touchStart) return;
+    
+    const touch = e.touches[0];
+    const currentY = touch.clientY;
+    const diff = currentY - touchStart;
+    
+    // Only allow dragging down
+    if (diff > 0) {
+      setIsDragging(true);
+      setDragOffset(diff);
+      setTouchEnd(currentY);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) {
+      setIsDragging(false);
+      setDragOffset(0);
+      return;
+    }
+    
+    const distance = touchEnd - touchStart;
+    
+    // If dragged down more than 100px, close the drawer
+    if (distance > 100) {
+      handleClosePanel();
+    } else {
+      // Snap back
+      setDragOffset(0);
+      setIsDragging(false);
+    }
+    
+    setTouchStart(null);
+    setTouchEnd(null);
+  };
+
+  // Cooldown timer
+  useEffect(() => {
+    if (!cooldownEnd) {
+      setCooldownTimeLeft(0);
+      return;
+    }
+    
+    const updateCooldown = () => {
+      const now = Date.now();
+      const remaining = Math.max(0, Math.ceil((cooldownEnd - now) / 1000));
+      setCooldownTimeLeft(remaining);
+      
+      if (remaining === 0) {
+        setCooldownEnd(null);
+        localStorage.removeItem(`helpCooldown_${userProfile.id}`);
+      }
+    };
+    
+    // Update immediately
+    updateCooldown();
+    
+    // Update every second
+    const interval = setInterval(updateCooldown, 1000);
+    
+    return () => clearInterval(interval);
+  }, [cooldownEnd, userProfile.id]);
 
   // Save seen notification IDs to localStorage whenever they change
   useEffect(() => {
@@ -49,6 +139,11 @@ function SidePanel({ notifications, onCloseNotification, onViewLocation, onNavig
   };
 
   const handleAskForHelp = () => {
+    // Check if on cooldown
+    if (cooldownTimeLeft > 0) {
+      return; // Button is disabled, do nothing
+    }
+    
     if (parentHelpActive) {
       // Stop help if already active
       if (helpTimeout) {
@@ -58,8 +153,13 @@ function SidePanel({ notifications, onCloseNotification, onViewLocation, onNavig
       if (onStopHelp) {
         onStopHelp();
       }
+      
+      // Start 30-minute cooldown AFTER stopping
+      const cooldownEndTime = Date.now() + (30 * 60 * 1000); // 30 minutes
+      setCooldownEnd(cooldownEndTime);
+      localStorage.setItem(`helpCooldown_${userProfile.id}`, cooldownEndTime.toString());
     } else {
-      // Activate help
+      // Activate help (no cooldown yet)
       onAskForHelp();
       
       // Auto-deactivate after 30 seconds
@@ -74,21 +174,31 @@ function SidePanel({ notifications, onCloseNotification, onViewLocation, onNavig
     }
   };
 
+  // Format cooldown time for display
+  const formatCooldownTime = () => {
+    if (cooldownTimeLeft === 0) return null;
+    const minutes = Math.floor(cooldownTimeLeft / 60);
+    const seconds = cooldownTimeLeft % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  const isOnCooldown = cooldownTimeLeft > 0;
+
   return (
     <>
       {/* Side Rail - Desktop: Fixed to right, Mobile: Bottom navigation */}
-      <div className="fixed right-0 top-0 w-16 h-screen bg-white/95 backdrop-blur-sm border-l border-gray-100 md:flex flex-col items-center py-4 space-y-3 z-[70] hidden">
+      <div className="fixed right-0 top-0 w-16 h-screen bg-white/95 backdrop-blur-sm border-l border-gray-100 md:flex flex-col items-center py-3 space-y-2.5 z-[70] hidden">
         {/* Notification Bell */}
         <button 
           onClick={handleNotificationClick}
-          className={`w-12 h-12 rounded-full flex items-center justify-center transition-all relative cursor-pointer ${
+          className={`w-11 h-11 rounded-full flex items-center justify-center transition-all relative cursor-pointer ${
             activePanel === 'notifications' ? 'bg-gray-200 text-gray-700' : 'hover:bg-gray-100 text-gray-600'
           }`}
           title="Notifications"
         >
-          <FontAwesomeIcon icon={faBell} className="w-5 h-5" />
+          <BellIcon className="w-5 h-5" />
           {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-semibold px-1">
+            <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] bg-red-500 text-white text-[9px] rounded-full flex items-center justify-center font-semibold px-0.5">
               {unreadCount}
             </span>
           )}
@@ -97,39 +207,47 @@ function SidePanel({ notifications, onCloseNotification, onViewLocation, onNavig
         {/* Ask for Help Button */}
         <button 
           onClick={handleAskForHelp}
-          className={`w-14 h-14 rounded-full flex items-center justify-center transition-all cursor-pointer ${
-            parentHelpActive 
-              ? 'bg-red-500 hover:bg-red-600 shadow-xl shadow-red-500/50 animate-pulse ring-4 ring-red-200' 
-              : 'bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-xl shadow-orange-500/40 hover:shadow-2xl hover:shadow-orange-500/50 hover:scale-105'
+          disabled={isOnCooldown}
+          className={`w-13 h-13 rounded-full flex flex-col items-center justify-center transition-all relative ${
+            isOnCooldown
+              ? 'bg-gray-400 cursor-not-allowed opacity-60'
+              : parentHelpActive 
+                ? 'bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/50 animate-pulse ring-2 ring-red-200 cursor-pointer' 
+                : 'bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-lg shadow-orange-500/40 hover:shadow-xl hover:shadow-orange-500/50 hover:scale-105 cursor-pointer'
           }`}
-          title={parentHelpActive ? 'Stop Help Request' : 'Ask for Help'}
+          title={isOnCooldown ? `Cooldown: ${formatCooldownTime()}` : parentHelpActive ? 'Stop Help Request' : 'Ask for Help'}
         >
-          <FontAwesomeIcon 
-            icon={parentHelpActive ? faTimes : faTriangleExclamation} 
-            className="w-6 h-6 text-white" 
-          />
+          {isOnCooldown ? (
+            <span className="text-[10px] text-white font-bold">{formatCooldownTime()}</span>
+          ) : (
+            parentHelpActive ? (
+              <XMarkIcon className="w-5 h-5 text-white" />
+            ) : (
+              <ExclamationTriangleIcon className="w-5 h-5 text-white" />
+            )
+          )}
         </button>
 
         {/* Family Button */}
         <button 
           onClick={() => setActivePanel(activePanel === 'family' ? null : 'family')}
-          className={`w-12 h-12 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+          className={`w-11 h-11 rounded-full flex items-center justify-center transition-all cursor-pointer ${
             activePanel === 'family' ? 'bg-gray-200 text-gray-700' : 'hover:bg-gray-100 text-gray-600'
           }`}
           title="Family Circle"
         >
-          <FontAwesomeIcon icon={faUserGroup} className="w-5 h-5" />
+          <UserGroupIcon className="w-5 h-5" />
         </button>
 
         {/* Help Button */}
         <button 
           onClick={() => setActivePanel(activePanel === 'help' ? null : 'help')}
-          className={`w-12 h-12 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+          className={`w-11 h-11 rounded-full flex items-center justify-center transition-all cursor-pointer ${
             activePanel === 'help' ? 'bg-gray-200 text-gray-700' : 'hover:bg-gray-100 text-gray-600'
           }`}
           title="Help & Support"
         >
-          <FontAwesomeIcon icon={faCircleQuestion} className="w-5 h-5" />
+          <QuestionMarkCircleIcon className="w-5 h-5" />
         </button>
 
         {/* Spacer */}
@@ -137,16 +255,16 @@ function SidePanel({ notifications, onCloseNotification, onViewLocation, onNavig
 
         {/* Dark Mode Toggle */}
         <button 
-          className="w-12 h-12 rounded-full hover:bg-gray-100 flex items-center justify-center transition-all cursor-pointer text-gray-600"
+          className="w-11 h-11 rounded-full hover:bg-gray-100 flex items-center justify-center transition-all cursor-pointer text-gray-600"
           title="Dark Mode"
         >
-          <FontAwesomeIcon icon={faMoon} className="w-5 h-5" />
+          <MoonIcon className="w-5 h-5" />
         </button>
 
         {/* Profile Button */}
         <button 
           onClick={() => setActivePanel(activePanel === 'settings' ? null : 'settings')}
-          className={`w-12 h-12 rounded-full overflow-hidden hover:shadow-lg transition-all flex items-center justify-center relative cursor-pointer ${
+          className={`w-11 h-11 rounded-full overflow-hidden hover:shadow-md transition-all flex items-center justify-center relative cursor-pointer ${
             activePanel === 'settings' ? 'ring-2 ring-blue-500' : ''
           }`}
           title="Profile Settings"
@@ -159,7 +277,7 @@ function SidePanel({ notifications, onCloseNotification, onViewLocation, onNavig
             />
           ) : (
             <div className="w-full h-full bg-blue-500 flex items-center justify-center">
-              <span className="text-white text-lg font-bold">
+              <span className="text-white text-sm font-bold">
                 {userProfile.name.charAt(0)}
               </span>
             </div>
@@ -168,7 +286,9 @@ function SidePanel({ notifications, onCloseNotification, onViewLocation, onNavig
       </div>
 
       {/* Mobile Bottom Navigation */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-100 z-[70] safe-area-pb">
+      <div className={`md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-100 z-[70] safe-area-pb transition-all duration-300 ${
+        activePanel ? 'translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'
+      }`}>
         <div className="flex items-center justify-around px-1 py-1.5">
           {/* Notification Bell */}
           <button 
@@ -177,7 +297,7 @@ function SidePanel({ notifications, onCloseNotification, onViewLocation, onNavig
               activePanel === 'notifications' ? 'bg-gray-200 text-gray-700' : 'text-gray-600'
             }`}
           >
-            <FontAwesomeIcon icon={faBell} className="w-4 h-4" />
+            <BellIcon className="w-4 h-4" />
             {unreadCount > 0 && (
               <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] bg-red-500 text-white text-[8px] rounded-full flex items-center justify-center font-semibold px-0.5">
                 {unreadCount}
@@ -190,22 +310,30 @@ function SidePanel({ notifications, onCloseNotification, onViewLocation, onNavig
             onClick={onFindMyLocation}
             className="p-2 rounded-full transition-all cursor-pointer text-gray-600 hover:bg-gray-100"
           >
-            <FontAwesomeIcon icon={faLocationCrosshairs} className="w-4 h-4" />
+            <MapPinIcon className="w-4 h-4" />
           </button>
 
           {/* Ask for Help Button */}
           <button 
             onClick={handleAskForHelp}
-            className={`w-12 h-12 rounded-full flex items-center justify-center transition-all cursor-pointer -mt-6 ${
-              parentHelpActive 
-                ? 'bg-red-500 shadow-lg shadow-red-500/50 animate-pulse ring-4 ring-red-200' 
-                : 'bg-gradient-to-br from-orange-500 to-orange-600 shadow-lg shadow-orange-500/40'
+            disabled={isOnCooldown}
+            className={`w-12 h-12 rounded-full flex flex-col items-center justify-center transition-all -mt-6 ${
+              isOnCooldown
+                ? 'bg-gray-400 cursor-not-allowed opacity-60'
+                : parentHelpActive 
+                  ? 'bg-red-500 shadow-lg shadow-red-500/50 animate-pulse ring-4 ring-red-200 cursor-pointer' 
+                  : 'bg-gradient-to-br from-orange-500 to-orange-600 shadow-lg shadow-orange-500/40 cursor-pointer'
             }`}
           >
-            <FontAwesomeIcon 
-              icon={parentHelpActive ? faTimes : faTriangleExclamation} 
-              className="w-5 h-5 text-white" 
-            />
+            {isOnCooldown ? (
+              <span className="text-[10px] text-white font-bold">{formatCooldownTime()}</span>
+            ) : (
+              parentHelpActive ? (
+                <XMarkIcon className="w-5 h-5 text-white" />
+              ) : (
+                <ExclamationTriangleIcon className="w-5 h-5 text-white" />
+              )
+            )}
           </button>
 
           {/* Family Button */}
@@ -215,7 +343,7 @@ function SidePanel({ notifications, onCloseNotification, onViewLocation, onNavig
               activePanel === 'family' ? 'bg-gray-200 text-gray-700' : 'text-gray-600'
             }`}
           >
-            <FontAwesomeIcon icon={faUserGroup} className="w-4 h-4" />
+            <UserGroupIcon className="w-4 h-4" />
           </button>
 
           {/* Profile Button */}
@@ -257,9 +385,7 @@ function SidePanel({ notifications, onCloseNotification, onViewLocation, onNavig
               onNavigate={(notification) => {
                 onNavigate(notification);
               }}
-              onClearAll={() => {
-                notifications.forEach(n => onCloseNotification(n.id));
-              }}
+              onClearAll={onClearAllNotifications}
               isOpen={true}
               userProfile={userProfile}
               helpActive={parentHelpActive}
@@ -318,9 +444,21 @@ function SidePanel({ notifications, onCloseNotification, onViewLocation, onNavig
           />
           
           {/* Bottom Sheet */}
-          <div className={`md:hidden fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl z-[60] max-h-[80vh] flex flex-col shadow-2xl pb-16 ${isClosing ? 'animate-slideDown' : 'animate-slideUp'}`}>
-            {/* Handle */}
-            <div className="flex justify-center pt-2 pb-1 flex-shrink-0">
+          <div 
+            className={`md:hidden fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl z-[60] max-h-[80vh] flex flex-col shadow-2xl ${isClosing ? 'animate-slideDown' : 'animate-slideUp'}`}
+            style={{
+              transform: isDragging ? `translateY(${dragOffset}px)` : 'translateY(0)',
+              transition: isDragging ? 'none' : 'transform 0.3s ease-out',
+              paddingBottom: 'calc(4rem + env(safe-area-inset-bottom))'
+            }}
+          >
+            {/* Handle - Draggable area */}
+            <div 
+              className="flex justify-center pt-2 pb-1 flex-shrink-0 cursor-grab active:cursor-grabbing"
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+            >
               <div className="w-10 h-1 bg-gray-300 rounded-full" />
             </div>
             
@@ -343,9 +481,7 @@ function SidePanel({ notifications, onCloseNotification, onViewLocation, onNavig
                     onNavigate(notification);
                     handleClosePanel();
                   }}
-                  onClearAll={() => {
-                    notifications.forEach(n => onCloseNotification(n.id));
-                  }}
+                  onClearAll={onClearAllNotifications}
                   isOpen={true}
                   userProfile={userProfile}
                   helpActive={parentHelpActive}

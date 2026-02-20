@@ -34,6 +34,11 @@ export const signInWithGoogle = async () => {
         photoUrl: user.photoURL,
         createdAt: new Date().toISOString()
       });
+    } else {
+      // Update existing user's photoUrl in case it changed
+      await saveUserProfile(user.uid, {
+        photoUrl: user.photoURL
+      });
     }
     
     return { success: true, user, isNewUser };

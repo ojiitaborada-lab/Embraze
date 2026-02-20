@@ -31,6 +31,11 @@ function App() {
   const [familyName, setFamilyName] = useState('');
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
+  const [dismissedAlerts, setDismissedAlerts] = useState(() => {
+    // Load dismissed alerts from localStorage
+    const stored = localStorage.getItem('dismissedAlerts');
+    return stored ? new Set(JSON.parse(stored)) : new Set();
+  });
 
   const mapViewRef = useRef(null);
 
@@ -40,22 +45,31 @@ function App() {
       if (firebaseUser) {
         setUser(firebaseUser);
         
+        console.log('Firebase User photoURL:', firebaseUser.photoURL);
+        
         // Load user profile from Firestore
         const profileResult = await getUserProfile(firebaseUser.uid);
         if (profileResult.success) {
-          setUserProfile({
+          console.log('Firestore profile data:', profileResult.data);
+          const profile = {
             id: firebaseUser.uid,
-            ...profileResult.data
-          });
+            ...profileResult.data,
+            // Always use the latest photoURL from Firebase Auth
+            photoUrl: firebaseUser.photoURL || profileResult.data.photoUrl
+          };
+          console.log('Final userProfile:', profile);
+          setUserProfile(profile);
         } else {
           // Use Firebase auth data as fallback
-          setUserProfile({
+          const profile = {
             id: firebaseUser.uid,
             name: firebaseUser.displayName || 'User',
             email: firebaseUser.email,
             phone: '',
             photoUrl: firebaseUser.photoURL
-          });
+          };
+          console.log('Fallback userProfile:', profile);
+          setUserProfile(profile);
         }
       } else {
         setUser(null);
@@ -94,13 +108,17 @@ function App() {
         }
       }
       
-      // Show only other users' alerts in notifications (not your own)
-      const otherUsersAlerts = alerts.filter(alert => alert.userId !== user.uid);
-      setNotifications(otherUsersAlerts.slice(0, 10)); // Show max 10 notifications
+      // Filter notifications: exclude user's own alerts, stopped alerts, and dismissed alerts
+      const otherUsersActiveAlerts = alerts.filter(alert => 
+        alert.userId !== user.uid && 
+        alert.status === 'active' &&
+        !dismissedAlerts.has(alert.id)
+      );
+      setNotifications(otherUsersActiveAlerts.slice(0, 10)); // Show max 10 notifications
     });
 
     return () => unsubscribe();
-  }, [user]);
+  }, [user, dismissedAlerts]);
 
   // Subscribe to family members
   useEffect(() => {
@@ -181,7 +199,29 @@ function App() {
   };
 
   const handleCloseNotification = (id) => {
+    // Add to dismissed alerts
+    const newDismissedAlerts = new Set(dismissedAlerts);
+    newDismissedAlerts.add(id);
+    setDismissedAlerts(newDismissedAlerts);
+    
+    // Save to localStorage
+    localStorage.setItem('dismissedAlerts', JSON.stringify([...newDismissedAlerts]));
+    
+    // Remove from notifications
     setNotifications(prev => prev.filter(n => n.id !== id));
+  };
+
+  const handleClearAllNotifications = () => {
+    // Add all current notification IDs to dismissed alerts
+    const newDismissedAlerts = new Set(dismissedAlerts);
+    notifications.forEach(n => newDismissedAlerts.add(n.id));
+    setDismissedAlerts(newDismissedAlerts);
+    
+    // Save to localStorage
+    localStorage.setItem('dismissedAlerts', JSON.stringify([...newDismissedAlerts]));
+    
+    // Clear all notifications
+    setNotifications([]);
   };
 
   const handleViewLocation = (notification) => {
@@ -263,13 +303,7 @@ function App() {
 
   const handleViewMemberLocation = (member) => {
     if (member.location && mapViewRef.current) {
-      mapViewRef.current.flyTo({
-        center: [member.location.longitude, member.location.latitude],
-        zoom: 17,
-        pitch: 60,
-        duration: 2000,
-        essential: true
-      });
+      mapViewRef.current.flyToLocation(member.location.latitude, member.location.longitude);
     }
   };
 
@@ -302,12 +336,8 @@ function App() {
       mapViewRef.current.stopHelp();
     }
     
-    // Remove the stopped alert after 1 hour (3600000 ms)
-    setTimeout(() => {
-      setAllHelpPings(prev => prev.filter(ping => ping.userId !== userProfile.id));
-      setNotifications(prev => prev.filter(notification => notification.userId !== userProfile.id));
-      setHelpStopped(false);
-    }, 3600000); // 1 hour
+    // Marker will remain visible for 24 hours (handled by Firebase query)
+    // Notification card is removed immediately (filtered in subscription above)
   };
 
   // Show loading screen
@@ -369,6 +399,7 @@ function App() {
         onCreateInviteCode={handleCreateInviteCode}
         showToastMessage={showToastMessage}
         onFindMyLocation={handleFindMyLocation}
+        onClearAllNotifications={handleClearAllNotifications}
       />
     </div>
   );

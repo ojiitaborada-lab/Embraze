@@ -1,8 +1,16 @@
 import { useState, useEffect } from 'react';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTimes, faPlus, faCopy, faUserGroup, faMapMarkerAlt, faTrash, faUsers, faRightFromBracket } from '@fortawesome/free-solid-svg-icons';
+import { 
+  XMarkIcon, 
+  PlusIcon, 
+  ClipboardDocumentIcon, 
+  UserGroupIcon, 
+  MapPinIcon, 
+  TrashIcon, 
+  ArrowRightOnRectangleIcon 
+} from '@heroicons/react/24/solid';
 import { Player } from '@lottiefiles/react-lottie-player';
-import circleLineAnimation from '../../public/circle line.json';
+import emptyGhostAnimation from '../assets/empty ghost.json';
+import loadingAnimation from '../../public/Loading.json';
 
 function FamilyPanel({ isOpen, onClose, userProfile, familyMembers = [], familyName = '', onCreateFamily, onJoinFamily, onLeaveFamily, onRemoveMember, isCreator, onViewMemberLocation, onCreateInviteCode }) {
   const [showJoinInput, setShowJoinInput] = useState(false);
@@ -12,6 +20,9 @@ function FamilyPanel({ isOpen, onClose, userProfile, familyMembers = [], familyN
   const [inviteCode, setInviteCode] = useState('');
   const [codeExpiry, setCodeExpiry] = useState(null);
   const [timeLeft, setTimeLeft] = useState(0);
+  const [isCreating, setIsCreating] = useState(false); // Loading state for family creation
+  const [isJoining, setIsJoining] = useState(false); // Loading state for joining family
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false); // Confirmation modal for leaving
 
   const hasFamily = familyMembers.length > 0;
   const canAddMembers = isCreator && familyMembers.length < 6; // Creator + 5 members
@@ -20,8 +31,9 @@ function FamilyPanel({ isOpen, onClose, userProfile, familyMembers = [], familyN
   useEffect(() => {
     if (isCreator && hasFamily && !inviteCode && canAddMembers && isOpen) {
       const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const expiry = Date.now() + 25000;
       setInviteCode(code);
-      setCodeExpiry(Date.now() + 25000);
+      setCodeExpiry(expiry);
       // Save invite code to Firebase
       if (onCreateInviteCode) {
         onCreateInviteCode(code);
@@ -31,40 +43,79 @@ function FamilyPanel({ isOpen, onClose, userProfile, familyMembers = [], familyN
 
   // Countdown timer for invite code
   useEffect(() => {
-    if (codeExpiry) {
-      const interval = setInterval(() => {
-        const remaining = Math.max(0, Math.floor((codeExpiry - Date.now()) / 1000));
-        setTimeLeft(remaining);
-        
-        if (remaining === 0) {
-          // Auto-regenerate code when it expires
-          const newCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-          setInviteCode(newCode);
-          setCodeExpiry(Date.now() + 25000); // 25 seconds
-          // Save new invite code to Firebase
-          if (onCreateInviteCode) {
-            onCreateInviteCode(newCode);
-          }
-        }
-      }, 1000);
+    if (!codeExpiry) return;
+    
+    // Calculate and set initial time immediately
+    const updateTimeLeft = () => {
+      const remaining = Math.max(0, Math.floor((codeExpiry - Date.now()) / 1000));
+      setTimeLeft(remaining);
+      return remaining;
+    };
+    
+    // Set initial time immediately
+    const initialRemaining = updateTimeLeft();
+    
+    // If already expired, regenerate immediately
+    if (initialRemaining === 0) {
+      const newCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const newExpiry = Date.now() + 25000;
+      setInviteCode(newCode);
+      setCodeExpiry(newExpiry);
+      setTimeLeft(25);
       
-      return () => clearInterval(interval);
+      if (onCreateInviteCode) {
+        onCreateInviteCode(newCode);
+      }
+      return;
     }
+    
+    const interval = setInterval(() => {
+      const remaining = updateTimeLeft();
+      
+      if (remaining === 0) {
+        clearInterval(interval);
+        
+        // Auto-regenerate code when it expires
+        const newCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+        const newExpiry = Date.now() + 25000;
+        setInviteCode(newCode);
+        setCodeExpiry(newExpiry);
+        setTimeLeft(25);
+        
+        if (onCreateInviteCode) {
+          onCreateInviteCode(newCode);
+        }
+      }
+    }, 1000);
+    
+    return () => clearInterval(interval);
   }, [codeExpiry, onCreateInviteCode]);
 
   const handleGenerateCode = () => {
     // Generate 6-character code
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const expiry = Date.now() + 25000;
     setInviteCode(code);
-    setCodeExpiry(Date.now() + 25000); // 25 seconds
+    setCodeExpiry(expiry);
     // Append " Family" to the name
-    onCreateFamily(code, `${newFamilyName.trim()} Family`);
+    return onCreateFamily(code, `${newFamilyName.trim()} Family`);
   };
 
-  const handleCreateFamily = () => {
+  const handleCreateFamily = async () => {
     if (newFamilyName.trim()) {
-      handleGenerateCode();
-      setShowCreateInput(false);
+      setIsCreating(true);
+      try {
+        // Ensure loading shows for at least 500ms to avoid blink
+        const [result] = await Promise.all([
+          handleGenerateCode(),
+          new Promise(resolve => setTimeout(resolve, 500))
+        ]);
+        setShowCreateInput(false);
+      } catch (error) {
+        console.error('Error creating family:', error);
+      } finally {
+        setIsCreating(false);
+      }
     }
   };
 
@@ -73,18 +124,77 @@ function FamilyPanel({ isOpen, onClose, userProfile, familyMembers = [], familyN
     // Could add a toast notification here
   };
 
-  const handleJoinFamily = () => {
+  const handleJoinFamily = async () => {
     if (joinCode.trim()) {
-      onJoinFamily(joinCode.trim().toUpperCase());
-      setJoinCode('');
-      setShowJoinInput(false);
+      setIsJoining(true);
+      try {
+        // Ensure loading shows for at least 500ms to avoid blink
+        await Promise.all([
+          onJoinFamily(joinCode.trim().toUpperCase()),
+          new Promise(resolve => setTimeout(resolve, 500))
+        ]);
+        setJoinCode('');
+        setShowJoinInput(false);
+      } catch (error) {
+        console.error('Error joining family:', error);
+      } finally {
+        setIsJoining(false);
+      }
     }
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="h-full w-full bg-gradient-to-br from-blue-50/30 to-white flex flex-col">
+    <div className="h-full w-full bg-gradient-to-br from-blue-50/30 to-white flex flex-col relative">
+      {/* Leave Confirmation Modal */}
+      {showLeaveConfirm && (
+        <div className="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 rounded-lg">
+          <div className="bg-white rounded-xl p-4 shadow-2xl max-w-[240px] mx-4 space-y-3">
+            <div className="text-center space-y-1.5">
+              <h3 className="text-sm font-semibold text-gray-900">Leave {familyName}?</h3>
+              <p className="text-[10px] text-gray-500">You'll need a new invite code to rejoin</p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowLeaveConfirm(false)}
+                className="flex-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full font-medium transition-all text-xs cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setShowLeaveConfirm(false);
+                  onLeaveFamily();
+                }}
+                className="flex-1 px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full font-medium transition-all text-xs cursor-pointer"
+              >
+                Leave
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Loading Modal - Compact */}
+      {(isCreating || isJoining) && (
+        <div className="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 rounded-lg px-4">
+          <div className="bg-white rounded-xl p-5 shadow-2xl flex flex-col items-center gap-2.5 w-full max-w-[200px]">
+            <div className="w-16 h-16">
+              <Player
+                autoplay
+                loop
+                src={loadingAnimation}
+                style={{ height: '100%', width: '100%' }}
+              />
+            </div>
+            <p className="text-gray-700 font-medium text-xs text-center">
+              {isCreating ? 'Creating family circle...' : 'Joining family circle...'}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="px-4 py-4">
         <div className="flex items-center justify-between">
@@ -98,11 +208,11 @@ function FamilyPanel({ isOpen, onClose, userProfile, familyMembers = [], familyN
           </div>
           {hasFamily && (
             <button
-              onClick={onLeaveFamily}
+              onClick={() => setShowLeaveConfirm(true)}
               className="px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 flex items-center gap-1.5 transition-all cursor-pointer text-xs font-medium"
               title="Leave Family Circle"
             >
-              <FontAwesomeIcon icon={faRightFromBracket} className="w-3 h-3" />
+              <ArrowRightOnRectangleIcon className="w-3 h-3" />
               Leave
             </button>
           )}
@@ -119,7 +229,7 @@ function FamilyPanel({ isOpen, onClose, userProfile, familyMembers = [], familyN
                 <Player
                   autoplay
                   loop
-                  src={circleLineAnimation}
+                  src={emptyGhostAnimation}
                   style={{ height: '128px', width: '128px' }}
                 />
               </div>
@@ -131,7 +241,7 @@ function FamilyPanel({ isOpen, onClose, userProfile, familyMembers = [], familyN
             {!showCreateInput && !showJoinInput ? (
               <button
                 onClick={() => setShowCreateInput(true)}
-                className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg font-medium transition-all text-xs cursor-pointer"
+                className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-full font-medium transition-all text-xs cursor-pointer"
               >
                 Create Family Circle
               </button>
@@ -152,20 +262,20 @@ function FamilyPanel({ isOpen, onClose, userProfile, familyMembers = [], familyN
                       setShowCreateInput(false);
                       setNewFamilyName('');
                     }}
-                    className="flex-1 bg-white hover:bg-gray-100 text-gray-700 py-1.5 rounded-lg font-medium transition-all text-xs cursor-pointer border border-gray-200"
+                    className="flex-1 bg-white hover:bg-gray-100 text-gray-700 py-1.5 rounded-full font-medium transition-all text-xs cursor-pointer border border-gray-200"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleCreateFamily}
-                    disabled={!newFamilyName.trim()}
-                    className={`flex-1 py-1.5 rounded-lg font-medium transition-all text-xs ${
-                      newFamilyName.trim()
+                    disabled={!newFamilyName.trim() || isCreating}
+                    className={`flex-1 py-1.5 rounded-full font-medium transition-all text-xs ${
+                      newFamilyName.trim() && !isCreating
                         ? 'bg-blue-500 hover:bg-blue-600 text-white cursor-pointer'
                         : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                     }`}
                   >
-                    Create
+                    {isCreating ? 'Creating...' : 'Create'}
                   </button>
                 </div>
               </div>
@@ -175,7 +285,7 @@ function FamilyPanel({ isOpen, onClose, userProfile, familyMembers = [], familyN
             {!showJoinInput && !showCreateInput ? (
               <button
                 onClick={() => setShowJoinInput(true)}
-                className="w-full bg-white hover:bg-gray-50 text-gray-700 py-2 rounded-lg font-medium transition-all border border-gray-200 hover:border-gray-300 text-xs cursor-pointer"
+                className="w-full bg-white hover:bg-gray-50 text-gray-700 py-2 rounded-full font-medium transition-all border border-gray-200 hover:border-gray-300 text-xs cursor-pointer"
               >
                 Join Family Circle
               </button>
@@ -195,20 +305,20 @@ function FamilyPanel({ isOpen, onClose, userProfile, familyMembers = [], familyN
                       setShowJoinInput(false);
                       setJoinCode('');
                     }}
-                    className="flex-1 bg-white hover:bg-gray-100 text-gray-700 py-1.5 rounded-lg font-medium transition-all text-xs cursor-pointer border border-gray-200"
+                    className="flex-1 bg-white hover:bg-gray-100 text-gray-700 py-1.5 rounded-full font-medium transition-all text-xs cursor-pointer border border-gray-200"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleJoinFamily}
-                    disabled={joinCode.length !== 6}
-                    className={`flex-1 py-1.5 rounded-lg font-medium transition-all text-xs ${
-                      joinCode.length === 6
+                    disabled={joinCode.length !== 6 || isJoining}
+                    className={`flex-1 py-1.5 rounded-full font-medium transition-all text-xs ${
+                      joinCode.length === 6 && !isJoining
                         ? 'bg-blue-500 hover:bg-blue-600 text-white cursor-pointer'
                         : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                     }`}
                   >
-                    Join
+                    {isJoining ? 'Joining...' : 'Join'}
                   </button>
                 </div>
               </div>
@@ -242,7 +352,7 @@ function FamilyPanel({ isOpen, onClose, userProfile, familyMembers = [], familyN
                         : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     }`}
                   >
-                    <FontAwesomeIcon icon={faCopy} className="w-3 h-3" />
+                    <ClipboardDocumentIcon className="w-3 h-3" />
                   </button>
                 </div>
               </div>
@@ -298,7 +408,7 @@ function FamilyPanel({ isOpen, onClose, userProfile, familyMembers = [], familyN
                         }`}
                         title={member.location ? "View on map" : "Location unavailable"}
                       >
-                        <FontAwesomeIcon icon={faMapMarkerAlt} className="w-2 h-2" />
+                        <MapPinIcon className="w-2 h-2" />
                       </button>
                       
                       {isCreator && member.id !== userProfile.id && (
@@ -307,7 +417,7 @@ function FamilyPanel({ isOpen, onClose, userProfile, familyMembers = [], familyN
                           className="w-6 h-6 bg-red-100 hover:bg-red-200 text-red-600 rounded-full flex items-center justify-center transition-all cursor-pointer"
                           title="Remove member"
                         >
-                          <FontAwesomeIcon icon={faTrash} className="w-2 h-2" />
+                          <TrashIcon className="w-2 h-2" />
                         </button>
                       )}
                     </div>

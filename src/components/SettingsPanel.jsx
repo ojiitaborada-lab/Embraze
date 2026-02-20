@@ -1,6 +1,12 @@
-import { useState } from 'react';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCamera, faSignOutAlt, faTimes, faBell, faMapMarkerAlt, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { useState, useEffect } from 'react';
+import { 
+  CameraIcon, 
+  ArrowRightOnRectangleIcon, 
+  XMarkIcon, 
+  BellIcon, 
+  MapPinIcon, 
+  TrashIcon 
+} from '@heroicons/react/24/solid';
 import { saveUserProfile, deleteUserData } from '../firebase/services';
 import { deleteAccount } from '../firebase/auth';
 
@@ -11,6 +17,15 @@ function SettingsPanel({ isOpen, onClose, userProfile, onUpdateProfile, onSignOu
   const [logoutConfirm, setLogoutConfirm] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
+
+  // Update formData when userProfile changes
+  useEffect(() => {
+    if (userProfile) {
+      console.log('SettingsPanel - userProfile updated:', userProfile);
+      console.log('SettingsPanel - photoUrl:', userProfile.photoUrl);
+      setFormData(userProfile);
+    }
+  }, [userProfile]);
 
   // Calculate days until name can be changed
   const getDaysUntilNameChange = () => {
@@ -183,13 +198,17 @@ function SettingsPanel({ isOpen, onClose, userProfile, onUpdateProfile, onSignOu
                     src={formData.photoUrl} 
                     alt={formData.name}
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      console.error('Failed to load image:', formData.photoUrl);
+                      e.target.style.display = 'none';
+                    }}
                   />
                 ) : (
                   formData.name.charAt(0)
                 )}
               </div>
               <label className="absolute bottom-0 right-0 w-7 h-7 bg-white hover:bg-blue-50 rounded-full flex items-center justify-center text-blue-500 shadow-lg transition-all border-2 border-white group-hover:scale-110 cursor-pointer">
-                <FontAwesomeIcon icon={faCamera} className="w-2.5 h-2.5" />
+                <CameraIcon className="w-2.5 h-2.5" />
                 <input 
                   type="file" 
                   accept="image/*"
@@ -272,7 +291,7 @@ function SettingsPanel({ isOpen, onClose, userProfile, onUpdateProfile, onSignOu
           {/* Notification Settings */}
           <div>
             <div className="flex items-center gap-1.5 mb-1.5">
-              <FontAwesomeIcon icon={faBell} className="w-2.5 h-2.5 text-blue-500" />
+              <BellIcon className="w-2.5 h-2.5 text-blue-500" />
               <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
                 Notifications
               </label>
@@ -299,7 +318,7 @@ function SettingsPanel({ isOpen, onClose, userProfile, onUpdateProfile, onSignOu
           {/* Auto-share Location */}
           <div>
             <div className="flex items-center gap-1.5 mb-1.5">
-              <FontAwesomeIcon icon={faMapMarkerAlt} className="w-2.5 h-2.5 text-blue-500" />
+              <MapPinIcon className="w-2.5 h-2.5 text-blue-500" />
               <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
                 Location
               </label>
@@ -329,7 +348,7 @@ function SettingsPanel({ isOpen, onClose, userProfile, onUpdateProfile, onSignOu
           {/* Save Button */}
           <button
             onClick={handleSave}
-            className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg font-medium transition-all text-xs cursor-pointer"
+            className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-full font-medium transition-all text-xs cursor-pointer"
           >
             Save Profile
           </button>
@@ -338,9 +357,9 @@ function SettingsPanel({ isOpen, onClose, userProfile, onUpdateProfile, onSignOu
           {!logoutConfirm ? (
             <button
               onClick={handleLogout}
-              className="w-full bg-white hover:bg-red-50 text-red-600 py-2 rounded-lg font-medium transition-all border border-red-200 hover:border-red-300 flex items-center justify-center gap-1.5 text-xs cursor-pointer"
+              className="w-full bg-white hover:bg-red-50 text-red-600 py-2 rounded-full font-medium transition-all border border-red-200 hover:border-red-300 flex items-center justify-center gap-1.5 text-xs cursor-pointer"
             >
-              <FontAwesomeIcon icon={faSignOutAlt} className="w-3 h-3" />
+              <ArrowRightOnRectangleIcon className="w-3 h-3" />
               Logout
             </button>
           ) : (
@@ -349,13 +368,13 @@ function SettingsPanel({ isOpen, onClose, userProfile, onUpdateProfile, onSignOu
               <div className="flex gap-2">
                 <button
                   onClick={() => setLogoutConfirm(false)}
-                  className="flex-1 bg-white hover:bg-gray-100 text-gray-700 py-1.5 rounded-lg font-medium transition-all text-xs cursor-pointer border border-gray-200"
+                  className="flex-1 bg-white hover:bg-gray-100 text-gray-700 py-1.5 rounded-full font-medium transition-all text-xs cursor-pointer border border-gray-200"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleLogout}
-                  className="flex-1 bg-red-500 hover:bg-red-600 text-white py-1.5 rounded-lg font-medium transition-all text-xs cursor-pointer"
+                  className="flex-1 bg-red-500 hover:bg-red-600 text-white py-1.5 rounded-full font-medium transition-all text-xs cursor-pointer"
                 >
                   Yes, Logout
                 </button>
@@ -370,9 +389,9 @@ function SettingsPanel({ isOpen, onClose, userProfile, onUpdateProfile, onSignOu
           {!deleteConfirm ? (
             <button
               onClick={handleDeleteAccount}
-              className="w-full bg-white hover:bg-red-100 text-red-700 py-2 rounded-lg font-medium transition-all border border-red-300 hover:border-red-400 flex items-center justify-center gap-1.5 text-xs cursor-pointer"
+              className="w-full bg-white hover:bg-red-100 text-red-700 py-2 rounded-full font-medium transition-all border border-red-300 hover:border-red-400 flex items-center justify-center gap-1.5 text-xs cursor-pointer"
             >
-              <FontAwesomeIcon icon={faTrash} className="w-3 h-3" />
+              <TrashIcon className="w-3 h-3" />
               Delete Account
             </button>
           ) : (
@@ -395,14 +414,14 @@ function SettingsPanel({ isOpen, onClose, userProfile, onUpdateProfile, onSignOu
                     setDeleteConfirm(false);
                     setDeleteConfirmText('');
                   }}
-                  className="flex-1 bg-white hover:bg-gray-100 text-gray-700 py-1.5 rounded-lg font-medium transition-all text-xs cursor-pointer border border-gray-200"
+                  className="flex-1 bg-white hover:bg-gray-100 text-gray-700 py-1.5 rounded-full font-medium transition-all text-xs cursor-pointer border border-gray-200"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleDeleteAccount}
                   disabled={deleteConfirmText.toLowerCase() !== 'delete my account'}
-                  className={`flex-1 py-1.5 rounded-lg font-medium transition-all text-xs ${
+                  className={`flex-1 py-1.5 rounded-full font-medium transition-all text-xs ${
                     deleteConfirmText.toLowerCase() === 'delete my account'
                       ? 'bg-red-600 hover:bg-red-700 text-white cursor-pointer'
                       : 'bg-gray-200 text-gray-400 cursor-not-allowed'
