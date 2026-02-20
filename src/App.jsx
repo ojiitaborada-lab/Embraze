@@ -4,6 +4,7 @@ import SidePanel from './components/SidePanel';
 import LoginScreen from './components/LoginScreen';
 import LoadingScreen from './components/LoadingScreen';
 import Toast from './components/Toast';
+import Banner from './components/Banner';
 import { signInWithGoogle, logOut, onAuthChange } from './firebase/auth';
 import { 
   getUserProfile, 
@@ -351,7 +352,9 @@ function App() {
   }
 
   return (
-    <div className="flex h-screen">
+    <div className="flex flex-col h-screen">
+      <Banner />
+      
       <Toast 
         message={`Welcome to Embraze, ${userProfile?.name || 'User'}!`}
         isVisible={welcomeMessage}
@@ -366,41 +369,43 @@ function App() {
         type="info"
       />
       
-      <div className="flex-1">
-        <MapView 
-          ref={mapViewRef}
-          onNewHelpRequest={handleNewHelpRequest}
-          allHelpPings={allHelpPings}
+      <div className="flex flex-1 overflow-hidden">
+        <div className="flex-1">
+          <MapView 
+            ref={mapViewRef}
+            onNewHelpRequest={handleNewHelpRequest}
+            allHelpPings={allHelpPings}
+            userProfile={userProfile}
+            helpActive={helpActive}
+            helpStopped={helpStopped}
+            familyMembers={familyMembers}
+          />
+        </div>
+        <SidePanel 
+          notifications={notifications}
+          onCloseNotification={handleCloseNotification}
+          onViewLocation={handleViewLocation}
+          onNavigate={handleNavigate}
           userProfile={userProfile}
+          onUpdateProfile={handleUpdateProfile}
+          onAskForHelp={handleAskForHelp}
+          onStopHelp={handleStopHelp}
           helpActive={helpActive}
           helpStopped={helpStopped}
+          onSignOut={handleSignOut}
           familyMembers={familyMembers}
+          familyName={familyName}
+          onCreateFamily={handleCreateFamily}
+          onJoinFamily={handleJoinFamily}
+          onLeaveFamily={handleLeaveFamily}
+          onRemoveMember={handleRemoveMember}
+          onViewMemberLocation={handleViewMemberLocation}
+          onCreateInviteCode={handleCreateInviteCode}
+          showToastMessage={showToastMessage}
+          onFindMyLocation={handleFindMyLocation}
+          onClearAllNotifications={handleClearAllNotifications}
         />
       </div>
-      <SidePanel 
-        notifications={notifications}
-        onCloseNotification={handleCloseNotification}
-        onViewLocation={handleViewLocation}
-        onNavigate={handleNavigate}
-        userProfile={userProfile}
-        onUpdateProfile={handleUpdateProfile}
-        onAskForHelp={handleAskForHelp}
-        onStopHelp={handleStopHelp}
-        helpActive={helpActive}
-        helpStopped={helpStopped}
-        onSignOut={handleSignOut}
-        familyMembers={familyMembers}
-        familyName={familyName}
-        onCreateFamily={handleCreateFamily}
-        onJoinFamily={handleJoinFamily}
-        onLeaveFamily={handleLeaveFamily}
-        onRemoveMember={handleRemoveMember}
-        onViewMemberLocation={handleViewMemberLocation}
-        onCreateInviteCode={handleCreateInviteCode}
-        showToastMessage={showToastMessage}
-        onFindMyLocation={handleFindMyLocation}
-        onClearAllNotifications={handleClearAllNotifications}
-      />
     </div>
   );
 }
