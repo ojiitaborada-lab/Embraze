@@ -74,6 +74,26 @@ function App() {
     const unsubscribe = subscribeToActiveAlerts((alerts) => {
       setAllHelpPings(alerts);
       
+      // Check if user has an active emergency alert
+      const userActiveAlert = alerts.find(alert => 
+        alert.userId === user.uid && alert.status === 'active'
+      );
+      
+      if (userActiveAlert) {
+        setHelpActive(true);
+        setHelpStopped(false);
+      } else {
+        // Check if user has a stopped alert
+        const userStoppedAlert = alerts.find(alert => 
+          alert.userId === user.uid && alert.status === 'stopped'
+        );
+        
+        if (userStoppedAlert) {
+          setHelpActive(false);
+          setHelpStopped(true);
+        }
+      }
+      
       // Show only other users' alerts in notifications (not your own)
       const otherUsersAlerts = alerts.filter(alert => alert.userId !== user.uid);
       setNotifications(otherUsersAlerts.slice(0, 10)); // Show max 10 notifications
@@ -224,7 +244,7 @@ function App() {
     if (result.success) {
       setUserProfile(prev => ({ ...prev, familyId: null }));
       setFamilyMembers([]);
-      showToastMessage('Left family circle');
+      showToastMessage('Successfully left family circle');
     } else {
       showToastMessage('Failed to leave: ' + result.error);
     }
@@ -257,6 +277,12 @@ function App() {
     if (!user?.uid || !userProfile?.familyId) return;
     
     await createInviteCode(userProfile.familyId, inviteCode, user.uid);
+  };
+
+  const handleFindMyLocation = () => {
+    if (mapViewRef.current) {
+      mapViewRef.current.handleFindMyLocation();
+    }
   };
 
   const handleAskForHelp = () => {
@@ -342,6 +368,7 @@ function App() {
         onViewMemberLocation={handleViewMemberLocation}
         onCreateInviteCode={handleCreateInviteCode}
         showToastMessage={showToastMessage}
+        onFindMyLocation={handleFindMyLocation}
       />
     </div>
   );

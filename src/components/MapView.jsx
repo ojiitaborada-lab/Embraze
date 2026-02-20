@@ -9,6 +9,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 const MapView = forwardRef(({ onNewHelpRequest, allHelpPings, userProfile, helpActive, helpStopped, familyMembers = [] }, ref) => {
   const mapRef = useRef();
   const [userLocation, setUserLocation] = useState(null);
+  const [animatedUserLocation, setAnimatedUserLocation] = useState(null); // Animated user position
   const [showUserMarker, setShowUserMarker] = useState(false);
   const [helpPing, setHelpPing] = useState(null);
   const [routeData, setRouteData] = useState(null);
@@ -19,6 +20,7 @@ const MapView = forwardRef(({ onNewHelpRequest, allHelpPings, userProfile, helpA
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [currentAlertId, setCurrentAlertId] = useState(null); // Track current user's alert ID
+  const [animatedFamilyPositions, setAnimatedFamilyPositions] = useState({}); // Store animated positions
   const [viewState, setViewState] = useState({
     longitude: 123.8854,
     latitude: 10.3157,
@@ -36,6 +38,112 @@ const MapView = forwardRef(({ onNewHelpRequest, allHelpPings, userProfile, helpA
       }
     }
   }, [allHelpPings]);
+
+  // Animate family member positions smoothly
+  useEffect(() => {
+    familyMembers.forEach(member => {
+      if (member.location && member.id !== userProfile?.id) {
+        const currentPos = animatedFamilyPositions[member.id];
+        const targetPos = {
+          longitude: member.location.longitude,
+          latitude: member.location.latitude
+        };
+        
+        if (!currentPos) {
+          // First time seeing this member, set position immediately
+          setAnimatedFamilyPositions(prev => ({
+            ...prev,
+            [member.id]: targetPos
+          }));
+        } else if (
+          Math.abs(currentPos.longitude - targetPos.longitude) > 0.00001 || 
+          Math.abs(currentPos.latitude - targetPos.latitude) > 0.00001
+        ) {
+          // Position changed, animate to new position
+          const startPos = { ...currentPos };
+          const startTime = Date.now();
+          const duration = 2000; // 2 seconds animation
+          
+          const animate = () => {
+            const elapsed = Date.now() - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            
+            // Smooth easing function (ease-in-out)
+            const easeProgress = progress < 0.5
+              ? 4 * progress * progress * progress
+              : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+            
+            const interpolatedLng = startPos.longitude + (targetPos.longitude - startPos.longitude) * easeProgress;
+            const interpolatedLat = startPos.latitude + (targetPos.latitude - startPos.latitude) * easeProgress;
+            
+            setAnimatedFamilyPositions(prev => ({
+              ...prev,
+              [member.id]: {
+                longitude: interpolatedLng,
+                latitude: interpolatedLat
+              }
+            }));
+            
+            if (progress < 1) {
+              requestAnimationFrame(animate);
+            }
+          };
+          
+          requestAnimationFrame(animate);
+        }
+      }
+    });
+  }, [familyMembers, userProfile?.id]);
+
+  // Animate user location smoothly
+  useEffect(() => {
+    if (!userLocation) return;
+    
+    if (!animatedUserLocation) {
+      // First time, set immediately
+      setAnimatedUserLocation(userLocation);
+    } else if (
+      Math.abs(animatedUserLocation.longitude - userLocation.longitude) > 0.00001 || 
+      Math.abs(animatedUserLocation.latitude - userLocation.latitude) > 0.00001
+    ) {
+      // Position changed, animate to new position
+      const startPos = { ...animatedUserLocation };
+      const targetPos = { ...userLocation };
+      const startTime = Date.now();
+      const duration = 1500; // 1.5 seconds for smoother user movement
+      
+      const animate = () => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        
+        // Smooth easing function
+        const easeProgress = progress < 0.5
+          ? 4 * progress * progress * progress
+          : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+        
+        const interpolatedLng = startPos.longitude + (targetPos.longitude - startPos.longitude) * easeProgress;
+        const interpolatedLat = startPos.latitude + (targetPos.latitude - startPos.latitude) * easeProgress;
+        
+        setAnimatedUserLocation({
+          longitude: interpolatedLng,
+          latitude: interpolatedLat
+        });
+        
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        }
+      };
+      
+      requestAnimationFrame(animate);
+    }
+  }, [userLocation]);
+
+  // Show user marker automatically during navigation
+  useEffect(() => {
+    if (selectedDestination) {
+      setShowUserMarker(true);
+    }
+  }, [selectedDestination]);
 
   // Track user location in real-time (but don't show marker automatically)
   useEffect(() => {
@@ -188,6 +296,7 @@ const MapView = forwardRef(({ onNewHelpRequest, allHelpPings, userProfile, helpA
     setSelectedDestination(null);
     setRouteInfo(null);
     setIsMinimized(false);
+    setShowUserMarker(false); // Hide user marker when navigation ends
     setToastMessage('Navigation ended');
     setShowToast(true);
   };
@@ -224,6 +333,7 @@ const MapView = forwardRef(({ onNewHelpRequest, allHelpPings, userProfile, helpA
         setHelpPing(null);
       }
     },
+    handleFindMyLocation: handleFindMyLocation,
     flyToLocation: (latitude, longitude) => {
       if (mapRef.current) {
         mapRef.current.flyTo({
@@ -286,10 +396,10 @@ const MapView = forwardRef(({ onNewHelpRequest, allHelpPings, userProfile, helpA
         )}
 
         {/* User Location Marker */}
-        {userLocation && showUserMarker && (
+        {animatedUserLocation && showUserMarker && (
           <Marker
-            longitude={userLocation.longitude}
-            latitude={userLocation.latitude}
+            longitude={animatedUserLocation.longitude}
+            latitude={animatedUserLocation.latitude}
             anchor="center"
           >
             <div className="relative">
@@ -396,38 +506,40 @@ const MapView = forwardRef(({ onNewHelpRequest, allHelpPings, userProfile, helpA
 
         {/* Family Member Markers */}
         {familyMembers && familyMembers
-          .filter(member => member.id !== userProfile?.id && member.location)
-          .map((member) => (
-            <Marker
-              key={`family-${member.id}`}
-              longitude={member.location.longitude}
-              latitude={member.location.latitude}
-              anchor="center"
-            >
-              <div className="relative cursor-pointer" onClick={(e) => {
-                e.stopPropagation();
-                setSelectedMarker({
-                  id: `family-${member.id}`,
-                  userName: member.name,
-                  photoUrl: member.photoUrl,
-                  latitude: member.location.latitude,
-                  longitude: member.location.longitude,
-                  address: 'Family Member',
-                  phone: member.phone,
-                  isFamilyMember: true,
-                  isOnline: member.isOnline
-                });
-              }}>
-                <div className="relative">
-                  {/* Pulsing ring for online status */}
-                  {member.isOnline && (
-                    <div className="absolute inset-0 bg-green-500 rounded-full animate-ping opacity-40" style={{ width: '36px', height: '36px', top: '-3px', left: '-3px' }} />
-                  )}
-                  
-                  {/* Avatar */}
-                  <div className="relative w-9 h-9 rounded-full border-3 border-white shadow-lg overflow-hidden bg-gradient-to-br from-purple-500 to-purple-600">
-                    {member.photoUrl ? (
-                      <img 
+          .filter(member => member.id !== userProfile?.id && member.location && animatedFamilyPositions[member.id])
+          .map((member) => {
+            const position = animatedFamilyPositions[member.id];
+            return (
+              <Marker
+                key={`family-${member.id}`}
+                longitude={position.longitude}
+                latitude={position.latitude}
+                anchor="center"
+              >
+                <div className="relative cursor-pointer" onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedMarker({
+                    id: `family-${member.id}`,
+                    userName: member.name,
+                    photoUrl: member.photoUrl,
+                    latitude: position.latitude,
+                    longitude: position.longitude,
+                    address: 'Family Member',
+                    phone: member.phone,
+                    isFamilyMember: true,
+                    isOnline: member.isOnline
+                  });
+                }}>
+                  <div className="relative">
+                    {/* Pulsing ring for online status */}
+                    {member.isOnline && (
+                      <div className="absolute inset-0 bg-green-500 rounded-full animate-ping opacity-40" style={{ width: '36px', height: '36px', top: '-3px', left: '-3px' }} />
+                    )}
+                    
+                    {/* Avatar */}
+                    <div className="relative w-9 h-9 rounded-full border-3 border-white shadow-lg overflow-hidden bg-gradient-to-br from-purple-500 to-purple-600">
+                      {member.photoUrl ? (
+                        <img 
                         src={member.photoUrl} 
                         alt={member.name}
                         className="w-full h-full object-cover"
@@ -446,7 +558,8 @@ const MapView = forwardRef(({ onNewHelpRequest, allHelpPings, userProfile, helpA
                 </div>
               </div>
             </Marker>
-          ))
+            );
+          })
         }
 
         {/* Marker Popup */}

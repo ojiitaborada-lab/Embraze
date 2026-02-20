@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBell, faCircleQuestion, faMoon, faHandPaper, faUserGroup, faTimes, faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
+import { faBell, faCircleQuestion, faMoon, faHandPaper, faUserGroup, faTimes, faTriangleExclamation, faLocationCrosshairs } from '@fortawesome/free-solid-svg-icons';
 import NotificationPanel from './NotificationPanel';
 import SettingsPanel from './SettingsPanel';
 import FamilyPanel from './FamilyPanel';
 
-function SidePanel({ notifications, onCloseNotification, onViewLocation, onNavigate, userProfile, onUpdateProfile, onAskForHelp, onStopHelp, helpActive: parentHelpActive, helpStopped, onSignOut, familyMembers, familyName, onCreateFamily, onJoinFamily, onLeaveFamily, onRemoveMember, onViewMemberLocation, onCreateInviteCode, showToastMessage }) {
+function SidePanel({ notifications, onCloseNotification, onViewLocation, onNavigate, userProfile, onUpdateProfile, onAskForHelp, onStopHelp, helpActive: parentHelpActive, helpStopped, onSignOut, familyMembers, familyName, onCreateFamily, onJoinFamily, onLeaveFamily, onRemoveMember, onViewMemberLocation, onCreateInviteCode, showToastMessage, onFindMyLocation }) {
   const [activePanel, setActivePanel] = useState(null); // 'notifications', 'settings', 'family', 'help'
   const [helpTimeout, setHelpTimeout] = useState(null);
   const [isClosing, setIsClosing] = useState(false);
@@ -169,26 +169,34 @@ function SidePanel({ notifications, onCloseNotification, onViewLocation, onNavig
 
       {/* Mobile Bottom Navigation */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-100 z-[70] safe-area-pb">
-        <div className="flex items-center justify-around px-2 py-2">
+        <div className="flex items-center justify-around px-1 py-1.5">
           {/* Notification Bell */}
           <button 
             onClick={handleNotificationClick}
-            className={`relative p-2 rounded-full transition-all ${
+            className={`relative p-2 rounded-full transition-all cursor-pointer ${
               activePanel === 'notifications' ? 'bg-gray-200 text-gray-700' : 'text-gray-600'
             }`}
           >
-            <FontAwesomeIcon icon={faBell} className="w-5 h-5" />
+            <FontAwesomeIcon icon={faBell} className="w-4 h-4" />
             {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] bg-red-500 text-white text-[9px] rounded-full flex items-center justify-center font-semibold px-1">
+              <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] bg-red-500 text-white text-[8px] rounded-full flex items-center justify-center font-semibold px-0.5">
                 {unreadCount}
               </span>
             )}
           </button>
 
+          {/* Find My Location Button */}
+          <button 
+            onClick={onFindMyLocation}
+            className="p-2 rounded-full transition-all cursor-pointer text-gray-600 hover:bg-gray-100"
+          >
+            <FontAwesomeIcon icon={faLocationCrosshairs} className="w-4 h-4" />
+          </button>
+
           {/* Ask for Help Button */}
           <button 
             onClick={handleAskForHelp}
-            className={`w-14 h-14 rounded-full flex items-center justify-center transition-all -mt-7 ${
+            className={`w-12 h-12 rounded-full flex items-center justify-center transition-all cursor-pointer -mt-6 ${
               parentHelpActive 
                 ? 'bg-red-500 shadow-lg shadow-red-500/50 animate-pulse ring-4 ring-red-200' 
                 : 'bg-gradient-to-br from-orange-500 to-orange-600 shadow-lg shadow-orange-500/40'
@@ -196,24 +204,24 @@ function SidePanel({ notifications, onCloseNotification, onViewLocation, onNavig
           >
             <FontAwesomeIcon 
               icon={parentHelpActive ? faTimes : faTriangleExclamation} 
-              className="w-6 h-6 text-white" 
+              className="w-5 h-5 text-white" 
             />
           </button>
 
           {/* Family Button */}
           <button 
             onClick={() => setActivePanel(activePanel === 'family' ? null : 'family')}
-            className={`p-2 rounded-full transition-all ${
+            className={`p-2 rounded-full transition-all cursor-pointer ${
               activePanel === 'family' ? 'bg-gray-200 text-gray-700' : 'text-gray-600'
             }`}
           >
-            <FontAwesomeIcon icon={faUserGroup} className="w-5 h-5" />
+            <FontAwesomeIcon icon={faUserGroup} className="w-4 h-4" />
           </button>
 
           {/* Profile Button */}
           <button 
             onClick={() => setActivePanel(activePanel === 'settings' ? null : 'settings')}
-            className={`w-9 h-9 rounded-full overflow-hidden transition-all ${
+            className={`w-8 h-8 rounded-full overflow-hidden transition-all cursor-pointer ${
               activePanel === 'settings' ? 'ring-2 ring-blue-500' : ''
             }`}
           >
@@ -225,7 +233,7 @@ function SidePanel({ notifications, onCloseNotification, onViewLocation, onNavig
               />
             ) : (
               <div className="w-full h-full bg-blue-500 flex items-center justify-center">
-                <span className="text-white text-xs font-bold">
+                <span className="text-white text-[10px] font-bold">
                   {userProfile.name.charAt(0)}
                 </span>
               </div>

@@ -39,7 +39,7 @@ function NotificationPanel({ notifications, onClose, onViewLocation, onNavigate,
         </div>
         <button
           onClick={onClearAll}
-          className="text-xs text-blue-600 hover:text-blue-700 font-semibold transition-colors px-2 py-1 hover:bg-blue-50 rounded-lg"
+          className="text-xs text-blue-600 hover:text-blue-700 font-semibold transition-colors px-2 py-1 hover:bg-blue-50 rounded-lg cursor-pointer"
         >
           Clear All
         </button>
@@ -99,7 +99,7 @@ function NotificationPanel({ notifications, onClose, onViewLocation, onNavigate,
                 </div>
                 <button
                   onClick={() => onClose(notification.id)}
-                  className="text-gray-400 hover:text-gray-600 transition-colors p-0.5 hover:bg-gray-100 rounded-full"
+                  className="text-gray-400 hover:text-gray-600 transition-colors p-0.5 hover:bg-gray-100 rounded-full cursor-pointer"
                 >
                   <FontAwesomeIcon icon={faTimes} className="w-2.5 h-2.5" />
                 </button>
@@ -129,7 +129,7 @@ function NotificationPanel({ notifications, onClose, onViewLocation, onNavigate,
                   className={`flex-1 py-2 rounded-lg text-[11px] font-semibold transition-all ${
                     isStoppedEmergency
                       ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                      : 'bg-blue-500 hover:bg-blue-600 text-white active:scale-95'
+                      : 'bg-blue-500 hover:bg-blue-600 text-white active:scale-95 cursor-pointer'
                   }`}
                 >
                   View
@@ -140,7 +140,7 @@ function NotificationPanel({ notifications, onClose, onViewLocation, onNavigate,
                   className={`flex-1 py-2 rounded-lg text-[11px] font-semibold transition-all flex items-center justify-center gap-1 ${
                     isStoppedEmergency
                       ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
-                      : 'bg-gray-100 hover:bg-gray-200 text-gray-700 active:scale-95'
+                      : 'bg-gray-100 hover:bg-gray-200 text-gray-700 active:scale-95 cursor-pointer'
                   }`}
                 >
                   <FontAwesomeIcon icon={faRoute} className="w-2.5 h-2.5" />

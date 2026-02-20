@@ -12,6 +12,10 @@ import { saveUserProfile, getUserProfile } from './services';
 export const signInWithGoogle = async () => {
   try {
     const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({
+      prompt: 'select_account'
+    });
+    
     const result = await signInWithPopup(auth, provider);
     const user = result.user;
     
@@ -35,6 +39,16 @@ export const signInWithGoogle = async () => {
     return { success: true, user, isNewUser };
   } catch (error) {
     console.error('Error signing in with Google:', error);
+    
+    // Handle specific error codes
+    if (error.code === 'auth/popup-closed-by-user') {
+      return { success: false, error: 'Sign-in cancelled' };
+    } else if (error.code === 'auth/popup-blocked') {
+      return { success: false, error: 'Popup blocked by browser. Please allow popups for this site.' };
+    } else if (error.code === 'auth/cancelled-popup-request') {
+      return { success: false, error: 'Another sign-in popup is already open' };
+    }
+    
     return { success: false, error: error.message };
   }
 };

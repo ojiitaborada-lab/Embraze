@@ -393,7 +393,9 @@ export const removeFamilyMember = async (creatorId, familyId, memberId) => {
 export const subscribeFamilyMembers = (familyId, callback) => {
   const familyRef = doc(db, 'familyCircles', familyId);
   
-  return onSnapshot(familyRef, async (familyDoc) => {
+  let unsubscribeUsers = [];
+  
+  const unsubscribeFamily = onSnapshot(familyRef, async (familyDoc) => {
     if (!familyDoc.exists()) {
       callback({ members: [], familyName: '' });
       return;
@@ -402,26 +404,45 @@ export const subscribeFamilyMembers = (familyId, callback) => {
     const familyData = familyDoc.data();
     const memberIds = familyData.members || [];
     
-    // Fetch all member profiles
-    const memberPromises = memberIds.map(async (memberId) => {
-      const userDoc = await getDoc(doc(db, 'users', memberId));
-      if (userDoc.exists()) {
-        return {
-          id: memberId,
-          ...userDoc.data(),
-          isCreator: memberId === familyData.creatorId,
-          isOnline: userDoc.data().isOnline || false
-        };
-      }
-      return null;
-    });
+    // Unsubscribe from previous user listeners
+    unsubscribeUsers.forEach(unsub => unsub());
+    unsubscribeUsers = [];
     
-    const members = (await Promise.all(memberPromises)).filter(m => m !== null);
-    callback({ members, familyName: familyData.name || 'My Family' });
+    // Create a map to store member data
+    const membersMap = new Map();
+    
+    // Subscribe to each member's user document for real-time updates
+    memberIds.forEach((memberId) => {
+      const userRef = doc(db, 'users', memberId);
+      const unsubUser = onSnapshot(userRef, (userDoc) => {
+        if (userDoc.exists()) {
+          membersMap.set(memberId, {
+            id: memberId,
+            ...userDoc.data(),
+            isCreator: memberId === familyData.creatorId,
+            isOnline: userDoc.data().isOnline || false
+          });
+        } else {
+          membersMap.delete(memberId);
+        }
+        
+        // Trigger callback with updated members
+        const members = Array.from(membersMap.values());
+        callback({ members, familyName: familyData.name || 'My Family' });
+      });
+      
+      unsubscribeUsers.push(unsubUser);
+    });
   }, (error) => {
     console.error('Error listening to family members:', error);
     callback({ members: [], familyName: '' });
   });
+  
+  // Return combined unsubscribe function
+  return () => {
+    unsubscribeFamily();
+    unsubscribeUsers.forEach(unsub => unsub());
+  };
 };
 
 export const updateUserLocation = async (userId, latitude, longitude) => {
