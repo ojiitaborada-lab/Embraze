@@ -69,7 +69,7 @@ vercel login
 ### Deploy
 ```bash
 # From your project directory
-cd Embraze-react
+cd Embraze
 
 # Deploy to production
 vercel --prod

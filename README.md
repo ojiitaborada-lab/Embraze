@@ -125,7 +125,7 @@ Embraze is a modern, real-time emergency alert system designed to help communiti
 1. **Clone the repository**
    ```bash
    git clone https://github.com/ojiitaborada-lab/Embraze.git
-   cd Embraze/Embraze-react
+   cd Embraze
    ```
 
 2. **Install dependencies**
@@ -222,7 +222,7 @@ The build output will be in the `dist` directory.
 ## 📁 Project Structure
 
 ```
-Embraze-react/
+Embraze/
 ├── public/              # Static assets
 │   ├── Loading.json     # Loading animation
 │   ├── circle line.json # Empty state animation

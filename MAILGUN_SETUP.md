@@ -36,7 +36,7 @@ Set your Mailgun credentials as Firebase secrets:
 
 ```bash
 # Navigate to your project
-cd Embraze-react
+cd Embraze
 
 # Set Mailgun API Key
 firebase functions:secrets:set MAILGUN_API_KEY

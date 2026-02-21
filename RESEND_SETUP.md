@@ -29,7 +29,7 @@ Your API key: `re_e8H2ARtE_6giYeKtThxt89ww62jLnj8At`
 Set it as a Firebase secret:
 
 ```bash
-cd Embraze-react
+cd Embraze
 echo "re_e8H2ARtE_6giYeKtThxt89ww62jLnj8At" | firebase functions:secrets:set RESEND_API_KEY
 ```
 
