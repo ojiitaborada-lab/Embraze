@@ -9,7 +9,8 @@ import {
   where,
   onSnapshot,
   serverTimestamp,
-  getDocs
+  getDocs,
+  orderBy
 } from 'firebase/firestore';
 import { db } from './config';
 
@@ -109,6 +110,7 @@ export const stopEmergencyAlert = async (alertId) => {
     const alertRef = doc(db, 'emergencyAlerts', alertId);
     await updateDoc(alertRef, {
       status: 'stopped',
+      isActive: false,
       stoppedAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
@@ -493,6 +495,77 @@ export const createInviteCode = async (familyId, inviteCode, creatorId) => {
     return { success: true };
   } catch (error) {
     console.error('Error creating invite code:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+
+// History Management
+export const getAlertHistory = async (userId, daysBack = 30) => {
+  try {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - daysBack);
+    
+    const q = query(
+      collection(db, 'emergencyAlerts'),
+      where('status', '==', 'stopped'),
+      where('stoppedAt', '>=', cutoffDate),
+      orderBy('stoppedAt', 'desc')
+    );
+    
+    const snapshot = await getDocs(q);
+    const history = [];
+    
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      history.push({
+        id: doc.id,
+        ...data,
+        createdAt: data.createdAt?.toMillis ? data.createdAt.toMillis() : data.createdAt,
+        stoppedAt: data.stoppedAt?.toMillis ? data.stoppedAt.toMillis() : data.stoppedAt
+      });
+    });
+    
+    return { success: true, history };
+  } catch (error) {
+    console.error('Error fetching history:', error);
+    return { success: false, error: error.message, history: [] };
+  }
+};
+
+export const clearAlertHistory = async (userId) => {
+  try {
+    // Get all stopped alerts older than 30 days
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - 30);
+    
+    const q = query(
+      collection(db, 'emergencyAlerts'),
+      where('status', '==', 'stopped'),
+      where('stoppedAt', '<', cutoffDate)
+    );
+    
+    const snapshot = await getDocs(q);
+    const deletePromises = [];
+    
+    snapshot.forEach((doc) => {
+      deletePromises.push(deleteDoc(doc.ref));
+    });
+    
+    await Promise.all(deletePromises);
+    return { success: true };
+  } catch (error) {
+    console.error('Error clearing history:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const deleteHistoryItem = async (alertId) => {
+  try {
+    await deleteDoc(doc(db, 'emergencyAlerts', alertId));
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting history item:', error);
     return { success: false, error: error.message };
   }
 };

@@ -15,7 +15,9 @@ import {
   removeFamilyMember,
   subscribeFamilyMembers,
   updateUserLocation,
-  createInviteCode
+  createInviteCode,
+  getAlertHistory,
+  deleteHistoryItem
 } from './firebase/services';
 
 function App() {
@@ -28,10 +30,66 @@ function App() {
   const [userProfile, setUserProfile] = useState(null);
   const [logoutMessage, setLogoutMessage] = useState(false);
   const [welcomeMessage, setWelcomeMessage] = useState(false);
+  const [welcomeText, setWelcomeText] = useState('');
   const [familyMembers, setFamilyMembers] = useState([]);
   const [familyName, setFamilyName] = useState('');
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
+  const [alertHistory, setAlertHistory] = useState([
+    // Sample history data for testing
+    {
+      id: 'sample-1',
+      userId: 'user-123',
+      userName: 'John Doe',
+      photoUrl: null,
+      address: 'Mabolo, Cebu City, Central Visayas',
+      latitude: 10.3321,
+      longitude: 123.9021,
+      phone: '+63 912 345 6789',
+      createdAt: Date.now() - (2 * 60 * 60 * 1000), // 2 hours ago
+      stoppedAt: Date.now() - (1.5 * 60 * 60 * 1000), // 1.5 hours ago (30 min duration)
+      status: 'stopped'
+    },
+    {
+      id: 'sample-2',
+      userId: userProfile?.id || 'current-user',
+      userName: userProfile?.name || 'You',
+      photoUrl: userProfile?.photoUrl || null,
+      address: 'IT Park, Lahug, Cebu City',
+      latitude: 10.3181,
+      longitude: 123.8945,
+      phone: userProfile?.phone || '+63 917 123 4567',
+      createdAt: Date.now() - (24 * 60 * 60 * 1000), // Yesterday
+      stoppedAt: Date.now() - (23.5 * 60 * 60 * 1000), // 30 min duration
+      status: 'stopped'
+    },
+    {
+      id: 'sample-3',
+      userId: 'user-456',
+      userName: 'Maria Santos',
+      photoUrl: null,
+      address: 'Ayala Center Cebu, Cebu Business Park',
+      latitude: 10.3181,
+      longitude: 123.9061,
+      phone: '+63 918 765 4321',
+      createdAt: Date.now() - (3 * 24 * 60 * 60 * 1000), // 3 days ago
+      stoppedAt: Date.now() - (3 * 24 * 60 * 60 * 1000) + (15 * 60 * 1000), // 15 min duration
+      status: 'stopped'
+    },
+    {
+      id: 'sample-4',
+      userId: 'user-789',
+      userName: 'Pedro Cruz',
+      photoUrl: null,
+      address: 'SM City Cebu, North Reclamation Area',
+      latitude: 10.3211,
+      longitude: 123.9001,
+      phone: '+63 919 876 5432',
+      createdAt: Date.now() - (7 * 24 * 60 * 60 * 1000), // 7 days ago
+      stoppedAt: Date.now() - (7 * 24 * 60 * 60 * 1000) + (45 * 60 * 1000), // 45 min duration
+      status: 'stopped'
+    }
+  ]);
   const [dismissedAlerts, setDismissedAlerts] = useState(() => {
     // Load dismissed alerts from localStorage
     const stored = localStorage.getItem('dismissedAlerts');
@@ -165,16 +223,47 @@ function App() {
     return () => clearInterval(interval);
   }, [user, userProfile?.familyId]);
 
+  // Fetch alert history
+  useEffect(() => {
+    const fetchHistory = async () => {
+      if (user?.uid && userProfile?.familyId) {
+        const result = await getAlertHistory(user.uid);
+        if (result.success) {
+          setAlertHistory(result.history);
+        }
+      }
+    };
+
+    fetchHistory();
+    // Refresh history every 30 seconds
+    const interval = setInterval(fetchHistory, 30000);
+    return () => clearInterval(interval);
+  }, [user, userProfile?.familyId]);
+
   const handleSignIn = async () => {
     const result = await signInWithGoogle();
     if (!result.success) {
       alert('Failed to sign in: ' + result.error);
-    } else if (result.isNewUser) {
-      // Show welcome message for new users
-      setWelcomeMessage(true);
-      setTimeout(() => {
-        setWelcomeMessage(false);
-      }, 3000);
+    } else {
+      // Extract first name from display name
+      const fullName = result.user?.displayName || 'User';
+      const firstName = fullName.split(' ')[0];
+      
+      if (result.isNewUser) {
+        // Show welcome message for new users
+        setWelcomeText(`Welcome to Embraze, ${firstName}!`);
+        setWelcomeMessage(true);
+        setTimeout(() => {
+          setWelcomeMessage(false);
+        }, 3000);
+      } else {
+        // Show welcome back message for returning users
+        setWelcomeText(`Welcome back, ${firstName}!`);
+        setWelcomeMessage(true);
+        setTimeout(() => {
+          setWelcomeMessage(false);
+        }, 3000);
+      }
     }
   };
 
@@ -320,6 +409,21 @@ function App() {
     }
   };
 
+  const handleClearHistory = async () => {
+    setAlertHistory([]);
+    showToastMessage('History cleared');
+  };
+
+  const handleClearHistoryItem = async (itemId) => {
+    const result = await deleteHistoryItem(itemId);
+    if (result.success) {
+      setAlertHistory(prev => prev.filter(item => item.id !== itemId));
+      showToastMessage('Item removed from history');
+    } else {
+      showToastMessage('Failed to remove item');
+    }
+  };
+
   const handleAskForHelp = () => {
     // Trigger the ask for help function in MapView
     setHelpActive(true);
@@ -353,24 +457,24 @@ function App() {
 
   return (
     <div className="flex flex-col h-screen">
-      <Banner />
-      
-      <Toast 
-        message={`Welcome to Embraze, ${userProfile?.name || 'User'}!`}
-        isVisible={welcomeMessage}
-        onClose={() => setWelcomeMessage(false)}
-        type="success"
-      />
-      
-      <Toast 
-        message={toastMessage}
-        isVisible={showToast}
-        onClose={() => setShowToast(false)}
-        type="info"
-      />
-      
       <div className="flex flex-1 overflow-hidden">
-        <div className="flex-1">
+        <div className="flex-1 relative">
+          <Toast 
+            message={welcomeText || `Welcome to Embraze, ${userProfile?.name || 'User'}!`}
+            isVisible={welcomeMessage}
+            onClose={() => setWelcomeMessage(false)}
+            type="success"
+            position="top-center"
+          />
+          
+          <Toast 
+            message={toastMessage}
+            isVisible={showToast}
+            onClose={() => setShowToast(false)}
+            type="info"
+            position="top-center"
+          />
+          
           <MapView 
             ref={mapViewRef}
             onNewHelpRequest={handleNewHelpRequest}
@@ -404,6 +508,9 @@ function App() {
           showToastMessage={showToastMessage}
           onFindMyLocation={handleFindMyLocation}
           onClearAllNotifications={handleClearAllNotifications}
+          alertHistory={alertHistory}
+          onClearHistory={handleClearHistory}
+          onClearHistoryItem={handleClearHistoryItem}
         />
       </div>
     </div>

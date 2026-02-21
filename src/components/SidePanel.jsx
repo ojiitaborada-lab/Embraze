@@ -5,15 +5,20 @@ import {
   MoonIcon, 
   UserGroupIcon, 
   XMarkIcon, 
-  ExclamationTriangleIcon, 
-  MapPinIcon
+  ExclamationTriangleIcon,
+  ClockIcon
 } from '@heroicons/react/24/solid';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faLocationCrosshairs } from '@fortawesome/free-solid-svg-icons';
 import NotificationPanel from './NotificationPanel';
 import SettingsPanel from './SettingsPanel';
 import FamilyPanel from './FamilyPanel';
+import HistoryPanel from './HistoryPanel';
+import HelpPanel from './HelpPanel';
+import Tooltip from './Tooltip';
 
-function SidePanel({ notifications, onCloseNotification, onViewLocation, onNavigate, userProfile, onUpdateProfile, onAskForHelp, onStopHelp, helpActive: parentHelpActive, helpStopped, onSignOut, familyMembers, familyName, onCreateFamily, onJoinFamily, onLeaveFamily, onRemoveMember, onViewMemberLocation, onCreateInviteCode, showToastMessage, onFindMyLocation, onClearAllNotifications }) {
-  const [activePanel, setActivePanel] = useState(null); // 'notifications', 'settings', 'family', 'help'
+function SidePanel({ notifications, onCloseNotification, onViewLocation, onNavigate, userProfile, onUpdateProfile, onAskForHelp, onStopHelp, helpActive: parentHelpActive, helpStopped, onSignOut, familyMembers, familyName, onCreateFamily, onJoinFamily, onLeaveFamily, onRemoveMember, onViewMemberLocation, onCreateInviteCode, showToastMessage, onFindMyLocation, onClearAllNotifications, alertHistory, onClearHistory, onClearHistoryItem }) {
+  const [activePanel, setActivePanel] = useState(null); // 'notifications', 'settings', 'family', 'history', 'help'
   const [helpTimeout, setHelpTimeout] = useState(null);
   const [isProcessingHelp, setIsProcessingHelp] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
@@ -206,100 +211,118 @@ function SidePanel({ notifications, onCloseNotification, onViewLocation, onNavig
       {/* Side Rail - Desktop: Fixed to right, Mobile: Bottom navigation */}
       <div className="fixed right-0 top-0 w-16 h-screen bg-white/95 backdrop-blur-sm border-l border-gray-100 md:flex flex-col items-center py-3 space-y-2.5 z-[70] hidden">
         {/* Notification Bell */}
-        <button 
-          onClick={handleNotificationClick}
-          className={`w-11 h-11 rounded-full flex items-center justify-center transition-all relative cursor-pointer ${
-            activePanel === 'notifications' ? 'bg-gray-200 text-gray-700' : 'hover:bg-gray-100 text-gray-600'
-          }`}
-          title="Notifications"
-        >
-          <BellIcon className="w-5 h-5" />
-          {unreadCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] bg-red-500 text-white text-[9px] rounded-full flex items-center justify-center font-semibold px-0.5">
-              {unreadCount}
-            </span>
-          )}
-        </button>
+        <Tooltip text={activePanel ? '' : 'Notifications'} position="left">
+          <button 
+            onClick={handleNotificationClick}
+            className={`w-11 h-11 rounded-full flex items-center justify-center transition-all relative cursor-pointer ${
+              activePanel === 'notifications' ? 'bg-gray-200 text-gray-700' : 'hover:bg-gray-100 text-gray-600'
+            }`}
+          >
+            <BellIcon className="w-5 h-5" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] bg-red-500 text-white text-[9px] rounded-full flex items-center justify-center font-semibold px-0.5">
+                {unreadCount}
+              </span>
+            )}
+          </button>
+        </Tooltip>
 
         {/* Ask for Help Button */}
-        <button 
-          onClick={handleAskForHelp}
-          disabled={isOnCooldown}
-          className={`w-13 h-13 rounded-full flex flex-col items-center justify-center transition-all relative ${
-            isOnCooldown
-              ? 'bg-gray-400 cursor-not-allowed opacity-60'
-              : parentHelpActive 
-                ? 'bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/50 animate-pulse ring-2 ring-red-200 cursor-pointer' 
-                : 'bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-lg shadow-orange-500/40 hover:shadow-xl hover:shadow-orange-500/50 hover:scale-105 cursor-pointer'
-          }`}
-          title={isOnCooldown ? `Cooldown: ${formatCooldownTime()}` : parentHelpActive ? 'Stop Help Request' : 'Ask for Help'}
-        >
-          {isOnCooldown ? (
-            <span className="text-[10px] text-white font-bold">{formatCooldownTime()}</span>
-          ) : (
-            parentHelpActive ? (
-              <XMarkIcon className="w-5 h-5 text-white" />
+        <Tooltip text={activePanel ? '' : (isOnCooldown ? `Cooldown: ${formatCooldownTime()}` : parentHelpActive ? 'Stop Help Request' : 'Ask for Help')} position="left">
+          <button 
+            onClick={handleAskForHelp}
+            disabled={isOnCooldown}
+            className={`w-13 h-13 rounded-full flex flex-col items-center justify-center transition-all relative ${
+              isOnCooldown
+                ? 'bg-gray-400 cursor-not-allowed opacity-60'
+                : parentHelpActive 
+                  ? 'bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/50 animate-pulse ring-2 ring-red-200 cursor-pointer' 
+                  : 'bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-lg shadow-orange-500/40 hover:shadow-xl hover:shadow-orange-500/50 hover:scale-105 cursor-pointer'
+            }`}
+          >
+            {isOnCooldown ? (
+              <span className="text-[10px] text-white font-bold">{formatCooldownTime()}</span>
             ) : (
-              <ExclamationTriangleIcon className="w-5 h-5 text-white" />
-            )
-          )}
-        </button>
+              parentHelpActive ? (
+                <XMarkIcon className="w-5 h-5 text-white" />
+              ) : (
+                <ExclamationTriangleIcon className="w-5 h-5 text-white" />
+              )
+            )}
+          </button>
+        </Tooltip>
 
         {/* Family Button */}
-        <button 
-          onClick={() => setActivePanel(activePanel === 'family' ? null : 'family')}
-          className={`w-11 h-11 rounded-full flex items-center justify-center transition-all cursor-pointer ${
-            activePanel === 'family' ? 'bg-gray-200 text-gray-700' : 'hover:bg-gray-100 text-gray-600'
-          }`}
-          title="Family Circle"
-        >
-          <UserGroupIcon className="w-5 h-5" />
-        </button>
+        <Tooltip text={activePanel ? '' : 'Family Circle'} position="left">
+          <button 
+            onClick={() => setActivePanel(activePanel === 'family' ? null : 'family')}
+            className={`w-11 h-11 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+              activePanel === 'family' ? 'bg-gray-200 text-gray-700' : 'hover:bg-gray-100 text-gray-600'
+            }`}
+          >
+            <UserGroupIcon className="w-5 h-5" />
+          </button>
+        </Tooltip>
+
+        {/* History Button */}
+        <Tooltip text={activePanel ? '' : 'Alert History'} position="left">
+          <button 
+            onClick={() => setActivePanel(activePanel === 'history' ? null : 'history')}
+            className={`w-11 h-11 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+              activePanel === 'history' ? 'bg-gray-200 text-gray-700' : 'hover:bg-gray-100 text-gray-600'
+            }`}
+          >
+            <ClockIcon className="w-5 h-5" />
+          </button>
+        </Tooltip>
 
         {/* Help Button */}
-        <button 
-          onClick={() => setActivePanel(activePanel === 'help' ? null : 'help')}
-          className={`w-11 h-11 rounded-full flex items-center justify-center transition-all cursor-pointer ${
-            activePanel === 'help' ? 'bg-gray-200 text-gray-700' : 'hover:bg-gray-100 text-gray-600'
-          }`}
-          title="Help & Support"
-        >
-          <QuestionMarkCircleIcon className="w-5 h-5" />
-        </button>
+        <Tooltip text={activePanel ? '' : 'Help & Support'} position="left">
+          <button 
+            onClick={() => setActivePanel(activePanel === 'help' ? null : 'help')}
+            className={`w-11 h-11 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+              activePanel === 'help' ? 'bg-gray-200 text-gray-700' : 'hover:bg-gray-100 text-gray-600'
+            }`}
+          >
+            <QuestionMarkCircleIcon className="w-5 h-5" />
+          </button>
+        </Tooltip>
 
         {/* Spacer */}
         <div className="flex-grow" />
 
         {/* Dark Mode Toggle */}
-        <button 
-          className="w-11 h-11 rounded-full hover:bg-gray-100 flex items-center justify-center transition-all cursor-pointer text-gray-600"
-          title="Dark Mode"
-        >
-          <MoonIcon className="w-5 h-5" />
-        </button>
+        <Tooltip text={activePanel ? '' : 'Dark Mode'} position="left">
+          <button 
+            className="w-11 h-11 rounded-full hover:bg-gray-100 flex items-center justify-center transition-all cursor-pointer text-gray-600"
+          >
+            <MoonIcon className="w-5 h-5" />
+          </button>
+        </Tooltip>
 
         {/* Profile Button */}
-        <button 
-          onClick={() => setActivePanel(activePanel === 'settings' ? null : 'settings')}
-          className={`w-11 h-11 rounded-full overflow-hidden hover:shadow-md transition-all flex items-center justify-center relative cursor-pointer ${
-            activePanel === 'settings' ? 'ring-2 ring-blue-500' : ''
-          }`}
-          title="Profile Settings"
-        >
-          {userProfile.photoUrl ? (
-            <img 
-              src={userProfile.photoUrl} 
-              alt={userProfile.name}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full bg-blue-500 flex items-center justify-center">
-              <span className="text-white text-sm font-bold">
-                {userProfile.name.charAt(0)}
-              </span>
-            </div>
-          )}
-        </button>
+        <Tooltip text={activePanel ? '' : 'Profile Settings'} position="left">
+          <button 
+            onClick={() => setActivePanel(activePanel === 'settings' ? null : 'settings')}
+            className={`w-11 h-11 rounded-full overflow-hidden hover:shadow-md transition-all flex items-center justify-center relative cursor-pointer ${
+              activePanel === 'settings' ? 'ring-2 ring-blue-500' : ''
+            }`}
+          >
+            {userProfile.photoUrl ? (
+              <img 
+                src={userProfile.photoUrl} 
+                alt={userProfile.name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full bg-blue-500 flex items-center justify-center">
+                <span className="text-white text-sm font-bold">
+                  {userProfile.name.charAt(0)}
+                </span>
+              </div>
+            )}
+          </button>
+        </Tooltip>
       </div>
 
       {/* Mobile Bottom Navigation */}
@@ -322,15 +345,17 @@ function SidePanel({ notifications, onCloseNotification, onViewLocation, onNavig
             )}
           </button>
 
-          {/* Find My Location Button */}
+          {/* Family Button */}
           <button 
-            onClick={onFindMyLocation}
-            className="p-2 rounded-full transition-all cursor-pointer text-gray-600 hover:bg-gray-100"
+            onClick={() => setActivePanel(activePanel === 'family' ? null : 'family')}
+            className={`p-2 rounded-full transition-all cursor-pointer ${
+              activePanel === 'family' ? 'bg-gray-200 text-gray-700' : 'text-gray-600'
+            }`}
           >
-            <MapPinIcon className="w-4 h-4" />
+            <UserGroupIcon className="w-4 h-4" />
           </button>
 
-          {/* Ask for Help Button */}
+          {/* Ask for Help Button - Centered */}
           <button 
             onClick={handleAskForHelp}
             disabled={isOnCooldown}
@@ -353,14 +378,14 @@ function SidePanel({ notifications, onCloseNotification, onViewLocation, onNavig
             )}
           </button>
 
-          {/* Family Button */}
+          {/* History Button */}
           <button 
-            onClick={() => setActivePanel(activePanel === 'family' ? null : 'family')}
+            onClick={() => setActivePanel(activePanel === 'history' ? null : 'history')}
             className={`p-2 rounded-full transition-all cursor-pointer ${
-              activePanel === 'family' ? 'bg-gray-200 text-gray-700' : 'text-gray-600'
+              activePanel === 'history' ? 'bg-gray-200 text-gray-700' : 'text-gray-600'
             }`}
           >
-            <UserGroupIcon className="w-4 h-4" />
+            <ClockIcon className="w-4 h-4" />
           </button>
 
           {/* Profile Button */}
@@ -438,15 +463,17 @@ function SidePanel({ notifications, onCloseNotification, onViewLocation, onNavig
             />
           )}
 
+          {activePanel === 'history' && (
+            <HistoryPanel
+              history={alertHistory || []}
+              onClearHistory={onClearHistory}
+              onClearItem={onClearHistoryItem}
+              userProfile={userProfile}
+            />
+          )}
+
           {activePanel === 'help' && (
-            <div className="h-full flex flex-col">
-              <div className="px-4 py-4">
-                <h3 className="text-lg font-semibold text-gray-800">Help & Support</h3>
-              </div>
-              <div className="p-6 flex-1 overflow-y-auto flex flex-col items-center justify-center">
-                <p className="text-sm text-gray-400">Coming soon</p>
-              </div>
-            </div>
+            <HelpPanel />
           )}
         </div>
       </div>
@@ -537,15 +564,17 @@ function SidePanel({ notifications, onCloseNotification, onViewLocation, onNavig
                 />
               )}
 
+              {activePanel === 'history' && (
+                <HistoryPanel
+                  history={alertHistory || []}
+                  onClearHistory={onClearHistory}
+                  onClearItem={onClearHistoryItem}
+                  userProfile={userProfile}
+                />
+              )}
+
               {activePanel === 'help' && (
-                <div className="h-full flex flex-col">
-                  <div className="px-4 py-4">
-                    <h3 className="text-lg font-semibold text-gray-800">Help & Support</h3>
-                  </div>
-                  <div className="p-6 flex-1 overflow-y-auto flex flex-col items-center justify-center">
-                    <p className="text-sm text-gray-400">Coming soon</p>
-                  </div>
-                </div>
+                <HelpPanel />
               )}
             </div>
           </div>

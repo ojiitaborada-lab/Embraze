@@ -1,17 +1,18 @@
 import { useState, useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
 import Map, { Marker, Source, Layer, Popup } from 'react-map-gl/maplibre';
 import { 
-  MapPinIcon, 
   ExclamationTriangleIcon, 
   XMarkIcon, 
-  ArrowTopRightOnSquareIcon, 
   ChevronDownIcon, 
   ChevronUpIcon, 
   PhoneIcon, 
   UserIcon
 } from '@heroicons/react/24/solid';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faRoute, faLocationCrosshairs, faLocationDot } from '@fortawesome/free-solid-svg-icons';
 import { Player } from '@lottiefiles/react-lottie-player';
 import Toast from './Toast';
+import Tooltip from './Tooltip';
 import { createEmergencyAlert, stopEmergencyAlert } from '../firebase/services';
 import loadingAnimation from '../../public/Loading.json';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -323,7 +324,7 @@ const MapView = forwardRef(({ onNewHelpRequest, allHelpPings, userProfile, helpA
     try {
       // Add timeout to prevent hanging
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // Increased to 10 second timeout
       
       const response = await fetch(
         `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
@@ -343,17 +344,37 @@ const MapView = forwardRef(({ onNewHelpRequest, allHelpPings, userProfile, helpA
       
       const data = await response.json();
       
-      // Build a more readable address
+      // Build a more readable address with more fallback options
       if (data.address) {
         const parts = [];
-        if (data.address.road) parts.push(data.address.road);
-        if (data.address.suburb || data.address.neighbourhood) {
-          parts.push(data.address.suburb || data.address.neighbourhood);
+        
+        // Try to get street address
+        if (data.address.road || data.address.street) {
+          parts.push(data.address.road || data.address.street);
+        } else if (data.address.pedestrian) {
+          parts.push(data.address.pedestrian);
+        } else if (data.address.footway) {
+          parts.push(data.address.footway);
         }
+        
+        // Try to get area/neighborhood
+        if (data.address.suburb || data.address.neighbourhood || data.address.quarter) {
+          parts.push(data.address.suburb || data.address.neighbourhood || data.address.quarter);
+        } else if (data.address.village || data.address.hamlet) {
+          parts.push(data.address.village || data.address.hamlet);
+        }
+        
+        // Try to get city
         if (data.address.city || data.address.town || data.address.municipality) {
           parts.push(data.address.city || data.address.town || data.address.municipality);
+        } else if (data.address.county) {
+          parts.push(data.address.county);
         }
-        if (data.address.state) parts.push(data.address.state);
+        
+        // Add state/province if available
+        if (data.address.state || data.address.province) {
+          parts.push(data.address.state || data.address.province);
+        }
         
         if (parts.length > 0) {
           return parts.join(', ');
@@ -362,14 +383,21 @@ const MapView = forwardRef(({ onNewHelpRequest, allHelpPings, userProfile, helpA
       
       // Fallback to display_name if address parts not available
       if (data.display_name) {
-        // Shorten the display name (take first 3 parts)
-        const nameParts = data.display_name.split(',').slice(0, 3);
-        return nameParts.join(',');
+        // Shorten the display name (take first 3-4 parts for better context)
+        const nameParts = data.display_name.split(',').slice(0, 4).map(part => part.trim());
+        return nameParts.join(', ');
       }
       
+      // Last resort: return coordinates
       return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
     } catch (error) {
       console.error('Reverse geocoding error:', error);
+      
+      // Try to provide a more helpful fallback message
+      if (error.name === 'AbortError') {
+        console.warn('Geocoding request timed out, using coordinates');
+      }
+      
       return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
     }
   };
@@ -425,6 +453,7 @@ const MapView = forwardRef(({ onNewHelpRequest, allHelpPings, userProfile, helpA
         isVisible={showToast}
         onClose={() => setShowToast(false)}
         type="success"
+        position="top-center"
       />
 
       {/* Loading Modal for Route Calculation - Compact */}
@@ -705,7 +734,7 @@ const MapView = forwardRef(({ onNewHelpRequest, allHelpPings, userProfile, helpA
               
               <div className="space-y-1.5 mb-2.5">
                 <div className="flex items-start gap-2">
-                  <MapPinIcon className="w-3 h-3 text-gray-500 mt-0.5 flex-shrink-0" />
+                  <FontAwesomeIcon icon={faLocationDot} className="w-3 h-3 text-gray-500 mt-0.5 flex-shrink-0" />
                   <p className="text-[11px] text-gray-600 flex-1 leading-snug line-clamp-2">{selectedMarker.address}</p>
                 </div>
                 
@@ -730,7 +759,7 @@ const MapView = forwardRef(({ onNewHelpRequest, allHelpPings, userProfile, helpA
                       : 'bg-blue-500 hover:bg-blue-600 text-white cursor-pointer'
                 }`}
               >
-                <ArrowTopRightOnSquareIcon className="w-3 h-3" />
+                <FontAwesomeIcon icon={faRoute} className="w-3 h-3" />
                 {selectedMarker.userId === userProfile?.id && !selectedMarker.isFamilyMember ? 'Your Alert' : 'Navigate'}
               </button>
               
@@ -759,7 +788,7 @@ const MapView = forwardRef(({ onNewHelpRequest, allHelpPings, userProfile, helpA
           >
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 md:w-7 md:h-7 rounded-full bg-blue-50 flex items-center justify-center">
-                <ArrowTopRightOnSquareIcon className="w-2.5 h-2.5 md:w-3 md:h-3 text-blue-500" />
+                <FontAwesomeIcon icon={faRoute} className="w-2.5 h-2.5 md:w-3 md:h-3 text-blue-500" />
               </div>
               <div className="text-left">
                 <h3 className="font-semibold text-gray-900 text-[11px] md:text-xs leading-tight">{selectedDestination.userName}</h3>
@@ -805,15 +834,18 @@ const MapView = forwardRef(({ onNewHelpRequest, allHelpPings, userProfile, helpA
         </div>
       )}
 
-      {/* Find My Location Button - Hidden on mobile, visible on desktop */}
-      <button 
-        onClick={handleFindMyLocation}
-        className="hidden md:flex absolute top-4 right-[80px] bg-white/95 backdrop-blur-sm rounded-full p-2 shadow-md hover:shadow-lg transition-all disabled:opacity-50 hover:scale-105 group cursor-pointer z-10"
-        disabled={!userLocation}
-        title="Find My Location"
-      >
-        <MapPinIcon className="w-4 h-4 text-gray-700 group-hover:text-blue-500 transition-colors" />
-      </button>
+      {/* Find My Location Button - Visible on all devices at top right */}
+      <div className="absolute top-4 right-4 md:right-[80px] z-10">
+        <Tooltip text="Find My Location" position="left">
+          <button 
+            onClick={handleFindMyLocation}
+            className="flex bg-white/95 backdrop-blur-sm rounded-full p-2 shadow-md hover:shadow-lg transition-all disabled:opacity-50 hover:scale-105 group cursor-pointer"
+            disabled={!userLocation}
+          >
+            <FontAwesomeIcon icon={faLocationCrosshairs} className="w-4 h-4 text-gray-700 group-hover:text-blue-500 transition-colors" />
+          </button>
+        </Tooltip>
+      </div>
     </div>
   );
 });

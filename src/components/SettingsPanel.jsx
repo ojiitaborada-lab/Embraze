@@ -5,7 +5,8 @@ import {
   XMarkIcon, 
   BellIcon, 
   MapPinIcon, 
-  TrashIcon 
+  TrashIcon,
+  CheckCircleIcon
 } from '@heroicons/react/24/solid';
 import { saveUserProfile, deleteUserData } from '../firebase/services';
 import { deleteAccount } from '../firebase/auth';
@@ -183,12 +184,12 @@ function SettingsPanel({ isOpen, onClose, userProfile, onUpdateProfile, onSignOu
   return (
     <div className="h-full w-full bg-white flex flex-col">
         {/* Header */}
-        <div className="px-4 py-4">
-          <h3 className="text-lg font-semibold text-gray-800">Profile</h3>
+        <div className="px-6 py-6 border-b border-gray-100">
+          <h3 className="text-xl font-semibold text-gray-900">Profile</h3>
         </div>
 
         {/* Content */}
-        <div className="p-4 space-y-3 overflow-y-auto flex-1">
+        <div className="px-6 py-8 space-y-6 overflow-y-auto flex-1">
           {/* Profile Photo */}
           <div className="flex flex-col items-center">
             <div className="relative group">
@@ -221,10 +222,10 @@ function SettingsPanel({ isOpen, onClose, userProfile, onUpdateProfile, onSignOu
           </div>
 
           {/* Form Fields */}
-          <div className="space-y-3">
+          <div className="space-y-5">
             {/* Name */}
             <div>
-              <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
                 Full Name
               </label>
               <input
@@ -233,7 +234,7 @@ function SettingsPanel({ isOpen, onClose, userProfile, onUpdateProfile, onSignOu
                 value={formData.name}
                 onChange={handleChange}
                 disabled={!canChangeName}
-                className={`w-full px-3 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none text-xs ${
+                className={`w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none text-sm ${
                   canChangeName 
                     ? 'bg-gray-50 focus:bg-white text-gray-900' 
                     : 'bg-gray-100 text-gray-500 cursor-not-allowed'
@@ -241,11 +242,11 @@ function SettingsPanel({ isOpen, onClose, userProfile, onUpdateProfile, onSignOu
                 placeholder="Enter your name"
               />
               {!canChangeName ? (
-                <p className="text-[10px] text-orange-600 mt-0.5">
+                <p className="text-xs text-orange-600 mt-1.5">
                   You can change your name again in {daysLeft} day{daysLeft > 1 ? 's' : ''}
                 </p>
               ) : (
-                <p className="text-[10px] text-gray-400 mt-0.5">
+                <p className="text-xs text-gray-400 mt-1.5">
                   Name can be changed once every 7 days
                 </p>
               )}
@@ -253,7 +254,7 @@ function SettingsPanel({ isOpen, onClose, userProfile, onUpdateProfile, onSignOu
 
             {/* Email */}
             <div>
-              <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
                 Email Address
               </label>
               <input
@@ -261,15 +262,15 @@ function SettingsPanel({ isOpen, onClose, userProfile, onUpdateProfile, onSignOu
                 name="email"
                 value={formData.email}
                 disabled
-                className="w-full px-3 py-2 bg-gray-100 border border-gray-200 rounded-xl text-gray-500 text-xs cursor-not-allowed"
+                className="w-full px-4 py-3 bg-gray-100 border border-gray-200 rounded-xl text-gray-500 text-sm cursor-not-allowed"
                 placeholder="Enter your email"
               />
-              <p className="text-[10px] text-gray-400 mt-0.5">Email cannot be changed (Google account)</p>
+              <p className="text-xs text-gray-400 mt-1.5">Email cannot be changed (Google account)</p>
             </div>
 
             {/* Phone */}
             <div>
-              <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
                 Phone Number
               </label>
               <input
@@ -277,11 +278,11 @@ function SettingsPanel({ isOpen, onClose, userProfile, onUpdateProfile, onSignOu
                 name="phone"
                 value={formData.phone}
                 onChange={handleChange}
-                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white transition-all outline-none text-gray-900 text-xs"
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white transition-all outline-none text-gray-900 text-sm"
                 placeholder="+63 912 345 6789"
                 maxLength={16}
               />
-              <p className="text-[10px] text-gray-400 mt-0.5">Format: +63 XXX XXX XXXX</p>
+              <p className="text-xs text-gray-400 mt-1.5">Format: +63 XXX XXX XXXX</p>
             </div>
           </div>
 
@@ -290,24 +291,24 @@ function SettingsPanel({ isOpen, onClose, userProfile, onUpdateProfile, onSignOu
 
           {/* Notification Settings */}
           <div>
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <BellIcon className="w-2.5 h-2.5 text-blue-500" />
-              <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
+            <div className="flex items-center gap-2 mb-2.5">
+              <BellIcon className="w-4 h-4 text-blue-500" />
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 Notifications
               </label>
             </div>
-            <div className="bg-gray-50 rounded-lg p-2">
+            <div className="bg-gray-50 rounded-lg p-3.5">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-700">Sound & Vibration</span>
+                <span className="text-sm text-gray-700">Sound & Vibration</span>
                 <button
                   onClick={() => setNotificationSound(!notificationSound)}
-                  className={`relative w-9 h-5 rounded-full transition-colors cursor-pointer ${
+                  className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer ${
                     notificationSound ? 'bg-blue-500' : 'bg-gray-300'
                   }`}
                 >
                   <div
-                    className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-md transition-transform ${
-                      notificationSound ? 'translate-x-4' : 'translate-x-0'
+                    className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-transform ${
+                      notificationSound ? 'translate-x-5' : 'translate-x-0'
                     }`}
                   />
                 </button>
@@ -317,27 +318,27 @@ function SettingsPanel({ isOpen, onClose, userProfile, onUpdateProfile, onSignOu
 
           {/* Auto-share Location */}
           <div>
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <MapPinIcon className="w-2.5 h-2.5 text-blue-500" />
-              <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
+            <div className="flex items-center gap-2 mb-2.5">
+              <MapPinIcon className="w-4 h-4 text-blue-500" />
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 Location
               </label>
             </div>
-            <div className="bg-gray-50 rounded-lg p-2">
-              <div className="flex items-center justify-between gap-2">
+            <div className="bg-gray-50 rounded-lg p-3.5">
+              <div className="flex items-center justify-between gap-3">
                 <div>
-                  <span className="text-xs text-gray-700 block">Auto-share Location</span>
-                  <span className="text-[10px] text-gray-500">When help is activated</span>
+                  <span className="text-sm text-gray-700 block">Auto-share Location</span>
+                  <span className="text-xs text-gray-500">When help is activated</span>
                 </div>
                 <button
                   onClick={() => setAutoShareLocation(!autoShareLocation)}
-                  className={`relative w-9 h-5 rounded-full transition-colors cursor-pointer flex-shrink-0 ${
+                  className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer flex-shrink-0 ${
                     autoShareLocation ? 'bg-blue-500' : 'bg-gray-300'
                   }`}
                 >
                   <div
-                    className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-md transition-transform ${
-                      autoShareLocation ? 'translate-x-4' : 'translate-x-0'
+                    className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-md transition-transform ${
+                      autoShareLocation ? 'translate-x-5' : 'translate-x-0'
                     }`}
                   />
                 </button>
@@ -348,8 +349,9 @@ function SettingsPanel({ isOpen, onClose, userProfile, onUpdateProfile, onSignOu
           {/* Save Button */}
           <button
             onClick={handleSave}
-            className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-full font-medium transition-all text-xs cursor-pointer"
+            className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-full font-medium transition-all text-sm cursor-pointer flex items-center justify-center gap-2"
           >
+            <CheckCircleIcon className="w-5 h-5" />
             Save Profile
           </button>
 
@@ -357,24 +359,24 @@ function SettingsPanel({ isOpen, onClose, userProfile, onUpdateProfile, onSignOu
           {!logoutConfirm ? (
             <button
               onClick={handleLogout}
-              className="w-full bg-white hover:bg-red-50 text-red-600 py-2 rounded-full font-medium transition-all border border-red-200 hover:border-red-300 flex items-center justify-center gap-1.5 text-xs cursor-pointer"
+              className="w-full bg-white hover:bg-red-50 text-red-600 py-3 rounded-full font-medium transition-all border border-red-200 hover:border-red-300 flex items-center justify-center gap-2 text-sm cursor-pointer"
             >
-              <ArrowRightOnRectangleIcon className="w-3 h-3" />
+              <ArrowRightOnRectangleIcon className="w-4 h-4" />
               Logout
             </button>
           ) : (
-            <div className="space-y-1.5">
-              <p className="text-[11px] text-gray-700 text-center font-medium">Are you sure you want to logout?</p>
-              <div className="flex gap-2">
+            <div className="space-y-2.5">
+              <p className="text-sm text-gray-700 text-center font-medium">Are you sure you want to logout?</p>
+              <div className="flex gap-2.5">
                 <button
                   onClick={() => setLogoutConfirm(false)}
-                  className="flex-1 bg-white hover:bg-gray-100 text-gray-700 py-1.5 rounded-full font-medium transition-all text-xs cursor-pointer border border-gray-200"
+                  className="flex-1 bg-white hover:bg-gray-100 text-gray-700 py-2.5 rounded-full font-medium transition-all text-sm cursor-pointer border border-gray-200"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleLogout}
-                  className="flex-1 bg-red-500 hover:bg-red-600 text-white py-1.5 rounded-full font-medium transition-all text-xs cursor-pointer"
+                  className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2.5 rounded-full font-medium transition-all text-sm cursor-pointer"
                 >
                   Yes, Logout
                 </button>
@@ -389,39 +391,39 @@ function SettingsPanel({ isOpen, onClose, userProfile, onUpdateProfile, onSignOu
           {!deleteConfirm ? (
             <button
               onClick={handleDeleteAccount}
-              className="w-full bg-white hover:bg-red-100 text-red-700 py-2 rounded-full font-medium transition-all border border-red-300 hover:border-red-400 flex items-center justify-center gap-1.5 text-xs cursor-pointer"
+              className="w-full bg-white hover:bg-red-100 text-red-700 py-3 rounded-full font-medium transition-all border border-red-300 hover:border-red-400 flex items-center justify-center gap-2 text-sm cursor-pointer"
             >
-              <TrashIcon className="w-3 h-3" />
+              <TrashIcon className="w-4 h-4" />
               Delete Account
             </button>
           ) : (
-            <div className="space-y-1.5">
-              <p className="text-[11px] text-red-700 text-center font-semibold">⚠️ This will permanently delete your account</p>
+            <div className="space-y-2.5">
+              <p className="text-sm text-red-700 text-center font-semibold">⚠️ This will permanently delete your account</p>
               
               <div>
                 <input
                   type="text"
                   value={deleteConfirmText}
                   onChange={(e) => setDeleteConfirmText(e.target.value)}
-                  className="w-full px-2.5 py-1.5 bg-gray-50 border border-gray-300 rounded-lg focus:ring-1 focus:ring-red-500 focus:border-red-500 focus:bg-white transition-all outline-none text-gray-900 text-xs text-center"
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg focus:ring-1 focus:ring-red-500 focus:border-red-500 focus:bg-white transition-all outline-none text-gray-900 text-sm text-center"
                   placeholder='Type "delete my account"'
                 />
               </div>
               
-              <div className="flex gap-2">
+              <div className="flex gap-2.5">
                 <button
                   onClick={() => {
                     setDeleteConfirm(false);
                     setDeleteConfirmText('');
                   }}
-                  className="flex-1 bg-white hover:bg-gray-100 text-gray-700 py-1.5 rounded-full font-medium transition-all text-xs cursor-pointer border border-gray-200"
+                  className="flex-1 bg-white hover:bg-gray-100 text-gray-700 py-2.5 rounded-full font-medium transition-all text-sm cursor-pointer border border-gray-200"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleDeleteAccount}
                   disabled={deleteConfirmText.toLowerCase() !== 'delete my account'}
-                  className={`flex-1 py-1.5 rounded-full font-medium transition-all text-xs ${
+                  className={`flex-1 py-2.5 rounded-full font-medium transition-all text-sm ${
                     deleteConfirmText.toLowerCase() === 'delete my account'
                       ? 'bg-red-600 hover:bg-red-700 text-white cursor-pointer'
                       : 'bg-gray-200 text-gray-400 cursor-not-allowed'
@@ -433,7 +435,7 @@ function SettingsPanel({ isOpen, onClose, userProfile, onUpdateProfile, onSignOu
             </div>
           )}
           {!deleteConfirm && (
-            <p className="text-[10px] text-gray-400 text-center -mt-1">
+            <p className="text-xs text-gray-400 text-center -mt-2">
               This action cannot be undone
             </p>
           )}

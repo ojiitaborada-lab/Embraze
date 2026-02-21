@@ -6,8 +6,12 @@ import {
   UserGroupIcon, 
   MapPinIcon, 
   TrashIcon, 
-  ArrowRightOnRectangleIcon 
+  ArrowRightOnRectangleIcon,
+  LinkIcon,
+  ArrowRightCircleIcon
 } from '@heroicons/react/24/solid';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPeopleGroup, faRightToBracket } from '@fortawesome/free-solid-svg-icons';
 import { Player } from '@lottiefiles/react-lottie-player';
 import emptyGhostAnimation from '../assets/empty ghost.json';
 import loadingAnimation from '../../public/Loading.json';
@@ -196,23 +200,23 @@ function FamilyPanel({ isOpen, onClose, userProfile, familyMembers = [], familyN
       )}
 
       {/* Header */}
-      <div className="px-4 py-4">
+      <div className="px-6 py-6 border-b border-gray-100">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-semibold text-gray-800">
+            <h3 className="text-xl font-semibold text-gray-900">
               {hasFamily ? familyName : 'Family Circle'}
             </h3>
             {hasFamily && (
-              <p className="text-[10px] text-gray-500 mt-0.5">{familyMembers.length} member{familyMembers.length !== 1 ? 's' : ''}</p>
+              <p className="text-xs text-gray-500 mt-1">{familyMembers.length} member{familyMembers.length !== 1 ? 's' : ''}</p>
             )}
           </div>
           {hasFamily && (
             <button
               onClick={() => setShowLeaveConfirm(true)}
-              className="px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 flex items-center gap-1.5 transition-all cursor-pointer text-xs font-medium"
+              className="px-3 py-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 flex items-center gap-2 transition-all cursor-pointer text-sm font-medium"
               title="Leave Family Circle"
             >
-              <ArrowRightOnRectangleIcon className="w-3 h-3" />
+              <ArrowRightOnRectangleIcon className="w-4 h-4" />
               Leave
             </button>
           )}
@@ -220,7 +224,7 @@ function FamilyPanel({ isOpen, onClose, userProfile, familyMembers = [], familyN
       </div>
 
       {/* Content */}
-      <div className="p-4 space-y-3 overflow-y-auto flex-1 flex flex-col">
+      <div className="px-6 py-8 space-y-6 overflow-y-auto flex-1 flex flex-col">
         {!hasFamily ? (
           /* No Family - Show Create/Join Options */
           <div className="space-y-3 max-w-md mx-auto w-full flex-1 flex flex-col justify-center">
@@ -241,35 +245,36 @@ function FamilyPanel({ isOpen, onClose, userProfile, familyMembers = [], familyN
             {!showCreateInput && !showJoinInput ? (
               <button
                 onClick={() => setShowCreateInput(true)}
-                className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-full font-medium transition-all text-xs cursor-pointer"
+                className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-full font-medium transition-all text-sm cursor-pointer flex items-center justify-center gap-2"
               >
+                <PlusIcon className="w-5 h-5" />
                 Create Family Circle
               </button>
             ) : showCreateInput ? (
-              <div className="space-y-2 bg-gray-50 p-2.5 rounded-lg">
+              <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
                 <input
                   type="text"
                   value={newFamilyName}
                   onChange={(e) => setNewFamilyName(e.target.value)}
                   placeholder="Enter family name"
                   maxLength={30}
-                  className="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none text-gray-900 text-xs"
+                  className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none text-gray-900 text-sm"
                 />
-                <p className="text-[10px] text-gray-500">Will be saved as "{newFamilyName.trim() || 'Name'} Family"</p>
-                <div className="flex gap-2">
+                <p className="text-xs text-gray-500">Will be saved as "{newFamilyName.trim() || 'Name'} Family"</p>
+                <div className="flex gap-2.5">
                   <button
                     onClick={() => {
                       setShowCreateInput(false);
                       setNewFamilyName('');
                     }}
-                    className="flex-1 bg-white hover:bg-gray-100 text-gray-700 py-1.5 rounded-full font-medium transition-all text-xs cursor-pointer border border-gray-200"
+                    className="flex-1 bg-white hover:bg-gray-100 text-gray-700 py-2.5 rounded-full font-medium transition-all text-sm cursor-pointer border border-gray-200"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleCreateFamily}
                     disabled={!newFamilyName.trim() || isCreating}
-                    className={`flex-1 py-1.5 rounded-full font-medium transition-all text-xs ${
+                    className={`flex-1 py-2.5 rounded-full font-medium transition-all text-sm ${
                       newFamilyName.trim() && !isCreating
                         ? 'bg-blue-500 hover:bg-blue-600 text-white cursor-pointer'
                         : 'bg-gray-200 text-gray-400 cursor-not-allowed'
@@ -285,34 +290,35 @@ function FamilyPanel({ isOpen, onClose, userProfile, familyMembers = [], familyN
             {!showJoinInput && !showCreateInput ? (
               <button
                 onClick={() => setShowJoinInput(true)}
-                className="w-full bg-white hover:bg-gray-50 text-gray-700 py-2 rounded-full font-medium transition-all border border-gray-200 hover:border-gray-300 text-xs cursor-pointer"
+                className="w-full bg-white hover:bg-gray-50 text-gray-700 py-3 rounded-full font-medium transition-all border border-gray-200 hover:border-gray-300 text-sm cursor-pointer flex items-center justify-center gap-2"
               >
+                <FontAwesomeIcon icon={faRightToBracket} className="w-5 h-5" />
                 Join Family Circle
               </button>
             ) : showJoinInput ? (
-              <div className="space-y-2 bg-gray-50 p-2.5 rounded-lg">
+              <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
                 <input
                   type="text"
                   value={joinCode}
                   onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
                   placeholder="Enter invite code"
                   maxLength={6}
-                  className="w-full px-2.5 py-1.5 bg-white border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none text-gray-900 text-xs text-center uppercase tracking-widest font-semibold"
+                  className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none text-gray-900 text-sm text-center uppercase tracking-widest font-semibold"
                 />
-                <div className="flex gap-2">
+                <div className="flex gap-2.5">
                   <button
                     onClick={() => {
                       setShowJoinInput(false);
                       setJoinCode('');
                     }}
-                    className="flex-1 bg-white hover:bg-gray-100 text-gray-700 py-1.5 rounded-full font-medium transition-all text-xs cursor-pointer border border-gray-200"
+                    className="flex-1 bg-white hover:bg-gray-100 text-gray-700 py-2.5 rounded-full font-medium transition-all text-sm cursor-pointer border border-gray-200"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleJoinFamily}
                     disabled={joinCode.length !== 6 || isJoining}
-                    className={`flex-1 py-1.5 rounded-full font-medium transition-all text-xs ${
+                    className={`flex-1 py-2.5 rounded-full font-medium transition-all text-sm ${
                       joinCode.length === 6 && !isJoining
                         ? 'bg-blue-500 hover:bg-blue-600 text-white cursor-pointer'
                         : 'bg-gray-200 text-gray-400 cursor-not-allowed'
@@ -329,30 +335,30 @@ function FamilyPanel({ isOpen, onClose, userProfile, familyMembers = [], familyN
           <div className="space-y-2.5">
             {/* Invite Code Section (Only for Creator) */}
             {isCreator && canAddMembers && (
-              <div className="bg-blue-50 rounded-xl p-2.5 space-y-1.5">
+              <div className="bg-blue-50 rounded-xl p-4 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-semibold text-gray-700">Invite Code</span>
+                  <span className="text-xs font-semibold text-gray-700">Invite Code</span>
                   {inviteCode && (
-                    <span className="text-[9px] text-blue-600 font-medium">
+                    <span className="text-xs text-blue-600 font-medium">
                       Expires in {timeLeft}s
                     </span>
                   )}
                 </div>
                 
-                <div className="flex items-center gap-1.5">
-                  <div className="flex-1 bg-white rounded-full px-2.5 py-1.5 text-center">
-                    <span className="text-lg font-bold text-gray-900 tracking-widest">{inviteCode || '------'}</span>
+                <div className="flex items-center gap-2.5">
+                  <div className="flex-1 bg-white rounded-full px-4 py-2.5 text-center">
+                    <span className="text-xl font-bold text-gray-900 tracking-widest">{inviteCode || '------'}</span>
                   </div>
                   <button
                     onClick={handleCopyCode}
                     disabled={!inviteCode}
-                    className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${
+                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
                       inviteCode
                         ? 'bg-blue-500 hover:bg-blue-600 text-white cursor-pointer'
                         : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     }`}
                   >
-                    <ClipboardDocumentIcon className="w-3 h-3" />
+                    <ClipboardDocumentIcon className="w-4 h-4" />
                   </button>
                 </div>
               </div>
@@ -360,18 +366,18 @@ function FamilyPanel({ isOpen, onClose, userProfile, familyMembers = [], familyN
 
             {/* Members List */}
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <h3 className="text-[10px] font-semibold text-gray-700">Members ({familyMembers.length}/6)</h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-xs font-semibold text-gray-700">Members ({familyMembers.length}/6)</h3>
               </div>
               
-              <div className="space-y-1.5">
+              <div className="space-y-2.5">
                 {familyMembers.map((member) => (
                   <div
                     key={member.id}
-                    className="flex items-center justify-between p-2 bg-gray-50 rounded-xl hover:bg-gray-100 transition-all"
+                    className="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-all"
                   >
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-[10px] font-bold overflow-hidden">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-bold overflow-hidden">
                         {member.photoUrl ? (
                           <img src={member.photoUrl} alt={member.name} className="w-full h-full object-cover" />
                         ) : (
@@ -379,45 +385,45 @@ function FamilyPanel({ isOpen, onClose, userProfile, familyMembers = [], familyN
                         )}
                       </div>
                       <div>
-                        <p className="text-[11px] font-semibold text-gray-900">
+                        <p className="text-sm font-semibold text-gray-900">
                           {member.name}
                           {member.id === userProfile.id && (
-                            <span className="text-[9px] text-gray-500 ml-1">(You)</span>
+                            <span className="text-xs text-gray-500 ml-1">(You)</span>
                           )}
                           {member.isCreator && (
-                            <span className="text-[9px] text-blue-600 ml-1">(Creator)</span>
+                            <span className="text-xs text-blue-600 ml-1">(Creator)</span>
                           )}
                         </p>
                         {member.isOnline && (
-                          <div className="flex items-center gap-0.5 text-[9px] text-green-600">
-                            <div className="w-1 h-1 bg-green-500 rounded-full"></div>
+                          <div className="flex items-center gap-1 text-xs text-green-600 mt-0.5">
+                            <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
                             Online
                           </div>
                         )}
                       </div>
                     </div>
                     
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5">
                       <button
                         onClick={() => onViewMemberLocation && onViewMemberLocation(member)}
                         disabled={!member.location}
-                        className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${
+                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
                           member.location
                             ? 'bg-blue-100 hover:bg-blue-200 text-blue-600 cursor-pointer'
                             : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                         }`}
                         title={member.location ? "View on map" : "Location unavailable"}
                       >
-                        <MapPinIcon className="w-2 h-2" />
+                        <MapPinIcon className="w-3.5 h-3.5" />
                       </button>
                       
                       {isCreator && member.id !== userProfile.id && (
                         <button
                           onClick={() => onRemoveMember(member.id)}
-                          className="w-6 h-6 bg-red-100 hover:bg-red-200 text-red-600 rounded-full flex items-center justify-center transition-all cursor-pointer"
+                          className="w-8 h-8 bg-red-100 hover:bg-red-200 text-red-600 rounded-full flex items-center justify-center transition-all cursor-pointer"
                           title="Remove member"
                         >
-                          <TrashIcon className="w-2 h-2" />
+                          <TrashIcon className="w-3.5 h-3.5" />
                         </button>
                       )}
                     </div>
