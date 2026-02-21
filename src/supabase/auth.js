@@ -6,6 +6,10 @@ import { supabase } from './config';
  * @returns {Promise<{success: boolean, error?: string}>}
  */
 export const sendMagicLink = async (email) => {
+  if (!supabase) {
+    return { success: false, error: 'Supabase is not configured' };
+  }
+
   try {
     const { error } = await supabase.auth.signInWithOtp({
       email,
@@ -32,6 +36,10 @@ export const sendMagicLink = async (email) => {
  * @returns {Function} Unsubscribe function
  */
 export const onSupabaseAuthChange = (callback) => {
+  if (!supabase) {
+    return () => {}; // Return empty unsubscribe function
+  }
+
   const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
     callback(event, session);
   });
@@ -44,6 +52,10 @@ export const onSupabaseAuthChange = (callback) => {
  * @returns {Promise<{session: object|null, error?: string}>}
  */
 export const getSupabaseSession = async () => {
+  if (!supabase) {
+    return { session: null, error: 'Supabase is not configured' };
+  }
+
   try {
     const { data: { session }, error } = await supabase.auth.getSession();
     
@@ -64,6 +76,10 @@ export const getSupabaseSession = async () => {
  * @returns {Promise<{success: boolean, error?: string}>}
  */
 export const signOutSupabase = async () => {
+  if (!supabase) {
+    return { success: false, error: 'Supabase is not configured' };
+  }
+
   try {
     const { error } = await supabase.auth.signOut();
     
