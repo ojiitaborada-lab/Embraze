@@ -4,34 +4,38 @@ import {
   QuestionMarkCircleIcon, 
   MoonIcon, 
   UserGroupIcon, 
-  XMarkIcon, 
-  ExclamationTriangleIcon,
-  ClockIcon
+  ClockIcon,
+  XMarkIcon,
+  SunIcon,
+  ComputerDesktopIcon,
+  CheckCircleIcon
 } from '@heroicons/react/24/solid';
+import { ArrowRightStartOnRectangleIcon } from '@heroicons/react/24/outline';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faLocationCrosshairs } from '@fortawesome/free-solid-svg-icons';
+import { faHandshake } from '@fortawesome/free-solid-svg-icons';
 import NotificationPanel from './NotificationPanel';
 import SettingsPanel from './SettingsPanel';
 import FamilyPanel from './FamilyPanel';
 import HistoryPanel from './HistoryPanel';
 import HelpPanel from './HelpPanel';
-import Tooltip from './Tooltip';
 
-function SidePanel({ notifications, onCloseNotification, onViewLocation, onNavigate, userProfile, onUpdateProfile, onAskForHelp, onStopHelp, helpActive: parentHelpActive, helpStopped, onSignOut, familyMembers, familyName, onCreateFamily, onJoinFamily, onLeaveFamily, onRemoveMember, onViewMemberLocation, onCreateInviteCode, showToastMessage, onFindMyLocation, onClearAllNotifications, alertHistory, onClearHistory, onClearHistoryItem }) {
+function SidePanel({ notifications, onCloseNotification, onViewLocation, onNavigate, userProfile, onUpdateProfile, helpActive: parentHelpActive, helpStopped, onSignOut, familyMembers, familyName, onCreateFamily, onJoinFamily, onLeaveFamily, onRemoveMember, onViewMemberLocation, onCreateInviteCode, showToastMessage, onClearAllNotifications, alertHistory, onClearHistory, onClearHistoryItem, onOpenHelpMenu, isHelpOnCooldown, cooldownTime, emergencyMenuOpen, onPanelChange }) {
   const [activePanel, setActivePanel] = useState(null); // 'notifications', 'settings', 'family', 'history', 'help'
-  const [helpTimeout, setHelpTimeout] = useState(null);
-  const [isProcessingHelp, setIsProcessingHelp] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState(0);
-  const [cooldownEnd, setCooldownEnd] = useState(() => {
-    // Load cooldown from localStorage
-    const stored = localStorage.getItem(`helpCooldown_${userProfile.id}`);
-    return stored ? parseInt(stored) : null;
-  });
-  const [cooldownTimeLeft, setCooldownTimeLeft] = useState(0);
+  const [showThemeDropup, setShowThemeDropup] = useState(false);
+  const [selectedTheme, setSelectedTheme] = useState('light'); // 'light', 'dark', 'system'
+  const [showLogoutDropup, setShowLogoutDropup] = useState(false);
+  
+  // Notify parent when panel changes
+  useEffect(() => {
+    if (onPanelChange) {
+      onPanelChange(activePanel);
+    }
+  }, [activePanel, onPanelChange]);
   
   // Load seen notification IDs from localStorage
   const [seenNotificationIds, setSeenNotificationIds] = useState(() => {
@@ -94,33 +98,6 @@ function SidePanel({ notifications, onCloseNotification, onViewLocation, onNavig
     setTouchEnd(null);
   };
 
-  // Cooldown timer
-  useEffect(() => {
-    if (!cooldownEnd) {
-      setCooldownTimeLeft(0);
-      return;
-    }
-    
-    const updateCooldown = () => {
-      const now = Date.now();
-      const remaining = Math.max(0, Math.ceil((cooldownEnd - now) / 1000));
-      setCooldownTimeLeft(remaining);
-      
-      if (remaining === 0) {
-        setCooldownEnd(null);
-        localStorage.removeItem(`helpCooldown_${userProfile.id}`);
-      }
-    };
-    
-    // Update immediately
-    updateCooldown();
-    
-    // Update every second
-    const interval = setInterval(updateCooldown, 1000);
-    
-    return () => clearInterval(interval);
-  }, [cooldownEnd, userProfile.id]);
-
   // Save seen notification IDs to localStorage whenever they change
   useEffect(() => {
     localStorage.setItem(
@@ -144,208 +121,328 @@ function SidePanel({ notifications, onCloseNotification, onViewLocation, onNavig
     }
   };
 
-  const handleAskForHelp = async () => {
-    // Check if on cooldown
-    if (cooldownTimeLeft > 0) {
-      return; // Button is disabled, do nothing
-    }
-    
-    // Prevent multiple rapid clicks
-    if (isProcessingHelp) {
-      return;
-    }
-    
-    if (parentHelpActive) {
-      // Stop help if already active
-      setIsProcessingHelp(true);
-      
-      if (helpTimeout) {
-        clearTimeout(helpTimeout);
-        setHelpTimeout(null);
-      }
-      if (onStopHelp) {
-        await onStopHelp();
-      }
-      
-      // Start 30-minute cooldown AFTER stopping
-      const cooldownEndTime = Date.now() + (30 * 60 * 1000); // 30 minutes
-      setCooldownEnd(cooldownEndTime);
-      localStorage.setItem(`helpCooldown_${userProfile.id}`, cooldownEndTime.toString());
-      
-      setIsProcessingHelp(false);
-    } else {
-      // Activate help (no cooldown yet)
-      setIsProcessingHelp(true);
-      
-      await onAskForHelp();
-      
-      // Auto-deactivate after 30 seconds
-      const timeout = setTimeout(async () => {
-        if (onStopHelp) {
-          await onStopHelp();
-        }
-        setHelpTimeout(null);
-      }, 30000);
-      
-      setHelpTimeout(timeout);
-      
-      // Add a small delay before allowing next click
-      setTimeout(() => {
-        setIsProcessingHelp(false);
-      }, 1000);
-    }
-  };
-
-  // Format cooldown time for display
-  const formatCooldownTime = () => {
-    if (cooldownTimeLeft === 0) return null;
-    const minutes = Math.floor(cooldownTimeLeft / 60);
-    const seconds = cooldownTimeLeft % 60;
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  };
-
-  const isOnCooldown = cooldownTimeLeft > 0;
-
   return (
     <>
       {/* Side Rail - Desktop: Fixed to right, Mobile: Bottom navigation */}
-      <div className="fixed right-0 top-0 w-16 h-screen bg-white/95 backdrop-blur-sm border-l border-gray-100 md:flex flex-col items-center py-3 space-y-2.5 z-[70] hidden">
+      <div className="fixed right-0 top-0 w-16 h-screen bg-slate-100 shadow-lg md:flex flex-col items-center py-3 space-y-2.5 z-[70] hidden">
         {/* Notification Bell */}
-        <Tooltip text={activePanel ? '' : 'Notifications'} position="left">
-          <button 
-            onClick={handleNotificationClick}
-            className={`w-11 h-11 rounded-full flex items-center justify-center transition-all relative cursor-pointer ${
-              activePanel === 'notifications' ? 'bg-gray-200 text-gray-700' : 'hover:bg-gray-100 text-gray-600'
-            }`}
-          >
-            <BellIcon className="w-5 h-5" />
-            {unreadCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] bg-red-500 text-white text-[9px] rounded-full flex items-center justify-center font-semibold px-0.5">
-                {unreadCount}
-              </span>
-            )}
-          </button>
-        </Tooltip>
-
-        {/* Ask for Help Button */}
-        <Tooltip text={activePanel ? '' : (isOnCooldown ? `Cooldown: ${formatCooldownTime()}` : parentHelpActive ? 'Stop Help Request' : 'Ask for Help')} position="left">
-          <button 
-            onClick={handleAskForHelp}
-            disabled={isOnCooldown}
-            className={`w-13 h-13 rounded-full flex flex-col items-center justify-center transition-all relative ${
-              isOnCooldown
-                ? 'bg-gray-400 cursor-not-allowed opacity-60'
-                : parentHelpActive 
-                  ? 'bg-red-500 hover:bg-red-600 shadow-lg shadow-red-500/50 animate-pulse ring-2 ring-red-200 cursor-pointer' 
-                  : 'bg-gradient-to-br from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-lg shadow-orange-500/40 hover:shadow-xl hover:shadow-orange-500/50 hover:scale-105 cursor-pointer'
-            }`}
-          >
-            {isOnCooldown ? (
-              <span className="text-[10px] text-white font-bold">{formatCooldownTime()}</span>
-            ) : (
-              parentHelpActive ? (
-                <XMarkIcon className="w-5 h-5 text-white" />
-              ) : (
-                <ExclamationTriangleIcon className="w-5 h-5 text-white" />
-              )
-            )}
-          </button>
-        </Tooltip>
+        <button 
+          onClick={handleNotificationClick}
+          className={`w-11 h-11 rounded-full flex items-center justify-center transition-all relative cursor-pointer ${
+            activePanel === 'notifications' 
+              ? 'bg-blue-100 text-blue-600 shadow-sm' 
+              : 'hover:bg-blue-50 text-gray-600 hover:text-blue-600'
+          }`}
+        >
+          <BellIcon className="w-5 h-5" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] bg-red-500 text-white text-[9px] rounded-full flex items-center justify-center font-semibold px-0.5 shadow-md">
+              {unreadCount}
+            </span>
+          )}
+        </button>
 
         {/* Family Button */}
-        <Tooltip text={activePanel ? '' : 'Family Circle'} position="left">
-          <button 
-            onClick={() => setActivePanel(activePanel === 'family' ? null : 'family')}
-            className={`w-11 h-11 rounded-full flex items-center justify-center transition-all cursor-pointer ${
-              activePanel === 'family' ? 'bg-gray-200 text-gray-700' : 'hover:bg-gray-100 text-gray-600'
-            }`}
-          >
-            <UserGroupIcon className="w-5 h-5" />
-          </button>
-        </Tooltip>
+        <button 
+          onClick={() => setActivePanel(activePanel === 'family' ? null : 'family')}
+          className={`w-11 h-11 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+            activePanel === 'family' 
+              ? 'bg-purple-100 text-purple-600 shadow-sm' 
+              : 'hover:bg-purple-50 text-gray-600 hover:text-purple-600'
+          }`}
+        >
+          <UserGroupIcon className="w-5 h-5" />
+        </button>
 
         {/* History Button */}
-        <Tooltip text={activePanel ? '' : 'Alert History'} position="left">
-          <button 
-            onClick={() => setActivePanel(activePanel === 'history' ? null : 'history')}
-            className={`w-11 h-11 rounded-full flex items-center justify-center transition-all cursor-pointer ${
-              activePanel === 'history' ? 'bg-gray-200 text-gray-700' : 'hover:bg-gray-100 text-gray-600'
-            }`}
-          >
-            <ClockIcon className="w-5 h-5" />
-          </button>
-        </Tooltip>
-
-        {/* Help Button */}
-        <Tooltip text={activePanel ? '' : 'Help & Support'} position="left">
-          <button 
-            onClick={() => setActivePanel(activePanel === 'help' ? null : 'help')}
-            className={`w-11 h-11 rounded-full flex items-center justify-center transition-all cursor-pointer ${
-              activePanel === 'help' ? 'bg-gray-200 text-gray-700' : 'hover:bg-gray-100 text-gray-600'
-            }`}
-          >
-            <QuestionMarkCircleIcon className="w-5 h-5" />
-          </button>
-        </Tooltip>
+        <button 
+          onClick={() => setActivePanel(activePanel === 'history' ? null : 'history')}
+          className={`w-11 h-11 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+            activePanel === 'history' 
+              ? 'bg-indigo-100 text-indigo-600 shadow-sm' 
+              : 'hover:bg-indigo-50 text-gray-600 hover:text-indigo-600'
+          }`}
+        >
+          <ClockIcon className="w-5 h-5" />
+        </button>
 
         {/* Spacer */}
         <div className="flex-grow" />
 
-        {/* Dark Mode Toggle */}
-        <Tooltip text={activePanel ? '' : 'Dark Mode'} position="left">
+        {/* Dark Mode Toggle with Drop-up */}
+        <div className="relative">
           <button 
-            className="w-11 h-11 rounded-full hover:bg-gray-100 flex items-center justify-center transition-all cursor-pointer text-gray-600"
-          >
-            <MoonIcon className="w-5 h-5" />
-          </button>
-        </Tooltip>
-
-        {/* Profile Button */}
-        <Tooltip text={activePanel ? '' : 'Profile Settings'} position="left">
-          <button 
-            onClick={() => setActivePanel(activePanel === 'settings' ? null : 'settings')}
-            className={`w-11 h-11 rounded-full overflow-hidden hover:shadow-md transition-all flex items-center justify-center relative cursor-pointer ${
-              activePanel === 'settings' ? 'ring-2 ring-blue-500' : ''
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowThemeDropup(!showThemeDropup);
+            }}
+            className={`w-11 h-11 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+              showThemeDropup
+                ? 'bg-gray-200 text-gray-800'
+                : 'hover:bg-gray-100 text-gray-600 hover:text-gray-800'
             }`}
           >
-            {userProfile.photoUrl ? (
-              <img 
-                src={userProfile.photoUrl} 
-                alt=""
-                className="w-full h-full object-cover"
-                referrerPolicy="no-referrer"
-                crossOrigin="anonymous"
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                }}
-              />
-            ) : null}
-            {!userProfile.photoUrl && (
-              <div className="w-full h-full bg-blue-500 flex items-center justify-center">
-                <span className="text-white text-sm font-bold">
-                  {userProfile.name.charAt(0)}
-                </span>
-              </div>
+            {selectedTheme === 'light' ? (
+              <SunIcon className="w-5 h-5" />
+            ) : selectedTheme === 'dark' ? (
+              <MoonIcon className="w-5 h-5" />
+            ) : (
+              <ComputerDesktopIcon className="w-5 h-5" />
             )}
           </button>
-        </Tooltip>
+
+          {/* Drop-up Theme Menu */}
+          {showThemeDropup && (
+            <>
+              {/* Invisible backdrop */}
+              <div 
+                className="fixed inset-0 z-[75] bg-transparent" 
+                style={{ pointerEvents: 'auto' }}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowThemeDropup(false);
+                }}
+              />
+              
+              {/* Drop-up */}
+              <div 
+                className="absolute right-full mr-2 bottom-0 bg-white rounded-xl shadow-2xl border border-gray-200 z-[80] overflow-hidden min-w-[200px]"
+                style={{ pointerEvents: 'auto' }}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+              >
+                <div className="p-1.5">
+                  {/* Light Mode */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedTheme('light');
+                      setShowThemeDropup(false);
+                    }}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all text-left ${
+                      selectedTheme === 'light' 
+                        ? 'bg-blue-50 text-blue-700' 
+                        : 'hover:bg-gray-50 text-gray-700'
+                    }`}
+                  >
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      selectedTheme === 'light' ? 'bg-blue-100' : 'bg-gray-100'
+                    }`}>
+                      <SunIcon className={`w-4 h-4 ${
+                        selectedTheme === 'light' ? 'text-blue-600' : 'text-gray-600'
+                      }`} />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-[10px] font-bold">Light</p>
+                      <p className="text-[9px] text-gray-500">Bright and clear</p>
+                    </div>
+                    {selectedTheme === 'light' && (
+                      <CheckCircleIcon className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                    )}
+                  </button>
+
+                  {/* Dark Mode */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedTheme('dark');
+                      setShowThemeDropup(false);
+                    }}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all text-left ${
+                      selectedTheme === 'dark' 
+                        ? 'bg-blue-50 text-blue-700' 
+                        : 'hover:bg-gray-50 text-gray-700'
+                    }`}
+                  >
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      selectedTheme === 'dark' ? 'bg-blue-100' : 'bg-gray-100'
+                    }`}>
+                      <MoonIcon className={`w-4 h-4 ${
+                        selectedTheme === 'dark' ? 'text-blue-600' : 'text-gray-600'
+                      }`} />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-[10px] font-bold">Dark</p>
+                      <p className="text-[9px] text-gray-500">Easy on the eyes</p>
+                    </div>
+                    {selectedTheme === 'dark' && (
+                      <CheckCircleIcon className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                    )}
+                  </button>
+
+                  {/* System Mode */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedTheme('system');
+                      setShowThemeDropup(false);
+                    }}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all text-left ${
+                      selectedTheme === 'system' 
+                        ? 'bg-blue-50 text-blue-700' 
+                        : 'hover:bg-gray-50 text-gray-700'
+                    }`}
+                  >
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      selectedTheme === 'system' ? 'bg-blue-100' : 'bg-gray-100'
+                    }`}>
+                      <ComputerDesktopIcon className={`w-4 h-4 ${
+                        selectedTheme === 'system' ? 'text-blue-600' : 'text-gray-600'
+                      }`} />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-[10px] font-bold">System</p>
+                      <p className="text-[9px] text-gray-500">Match device</p>
+                    </div>
+                    {selectedTheme === 'system' && (
+                      <CheckCircleIcon className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                    )}
+                  </button>
+                </div>
+                
+                <div className="px-3 py-2 bg-gray-50 border-t border-gray-100">
+                  <p className="text-[9px] text-gray-500 text-center">Coming soon</p>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Help Button */}
+        <button 
+          onClick={() => setActivePanel(activePanel === 'help' ? null : 'help')}
+          className={`w-11 h-11 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+            activePanel === 'help' 
+              ? 'bg-green-100 text-green-600 shadow-sm' 
+              : 'hover:bg-green-50 text-gray-600 hover:text-green-600'
+          }`}
+        >
+          <QuestionMarkCircleIcon className="w-5 h-5" />
+        </button>
+
+        {/* Profile Button */}
+        <button 
+          onClick={() => setActivePanel(activePanel === 'settings' ? null : 'settings')}
+          className={`w-11 h-11 rounded-full overflow-hidden hover:shadow-lg transition-all flex items-center justify-center relative cursor-pointer ${
+            activePanel === 'settings' 
+              ? 'ring-2 ring-blue-500 shadow-md' 
+              : parentHelpActive 
+                ? 'ring-2 ring-red-500 ring-offset-2 shadow-md' 
+                : 'shadow-sm hover:shadow-md'
+          }`}
+        >
+          {userProfile.photoUrl ? (
+            <img 
+              src={userProfile.photoUrl} 
+              alt=""
+              className="w-full h-full object-cover"
+              referrerPolicy="no-referrer"
+              crossOrigin="anonymous"
+              onError={(e) => {
+                e.target.style.display = 'none';
+              }}
+            />
+          ) : null}
+          {!userProfile.photoUrl && (
+            <div className={`w-full h-full flex items-center justify-center ${
+              parentHelpActive ? 'bg-red-500' : 'bg-blue-600'
+            }`}>
+              <span className="text-white text-sm font-bold">
+                {userProfile.name.charAt(0)}
+              </span>
+            </div>
+          )}
+        </button>
+
+        {/* Logout Button with Drop-up */}
+        <div className="relative">
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowLogoutDropup(!showLogoutDropup);
+            }}
+            className={`w-11 h-11 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+              showLogoutDropup
+                ? 'bg-gray-200 text-gray-800'
+                : 'hover:bg-gray-100 text-gray-600 hover:text-gray-800'
+            }`}
+          >
+            <ArrowRightStartOnRectangleIcon className="w-5 h-5" />
+          </button>
+
+          {/* Drop-up Logout Confirmation */}
+          {showLogoutDropup && (
+            <>
+              {/* Invisible backdrop */}
+              <div 
+                className="fixed inset-0 z-[75] bg-transparent" 
+                style={{ pointerEvents: 'auto' }}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowLogoutDropup(false);
+                }}
+              />
+              
+              {/* Drop-up */}
+              <div 
+                className="absolute right-full mr-2 bottom-0 bg-white rounded-xl shadow-2xl border border-gray-200 z-[80] overflow-hidden min-w-[200px]"
+                style={{ pointerEvents: 'auto' }}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+              >
+                <div className="p-1.5">
+                  {/* Logout Option */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowLogoutDropup(false);
+                      onSignOut();
+                    }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all text-left hover:bg-gray-50 text-gray-700 cursor-pointer"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                      <ArrowRightStartOnRectangleIcon className="w-4 h-4 text-gray-600" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-[10px] font-bold">Sign Out</p>
+                      <p className="text-[9px] text-gray-500">Sign in again later</p>
+                    </div>
+                  </button>
+                </div>
+                
+                <div className="px-3 py-2 bg-gray-50 border-t border-gray-100">
+                  <p className="text-[9px] text-gray-900 font-semibold truncate">{userProfile.name}</p>
+                  <p className="text-[8px] text-gray-500 truncate">{userProfile.email}</p>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Mobile Bottom Navigation */}
-      <div className={`md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-100 z-[70] safe-area-pb transition-all duration-300 ${
+      <div className={`md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-100 z-[70] safe-area-pb transition-all duration-300 shadow-lg ${
         activePanel ? 'translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'
       }`}>
-        <div className="flex items-center justify-around px-1 py-1.5">
+        <div className="flex items-center justify-around px-2 py-2">
           {/* Notification Bell */}
           <button 
             onClick={handleNotificationClick}
-            className={`relative p-2 rounded-full transition-all cursor-pointer ${
-              activePanel === 'notifications' ? 'bg-gray-200 text-gray-700' : 'text-gray-600'
+            className={`relative p-3 rounded-full transition-all cursor-pointer ${
+              activePanel === 'notifications' 
+                ? 'bg-blue-100 text-blue-600' 
+                : 'text-gray-600 hover:bg-blue-50 hover:text-blue-600'
             }`}
           >
-            <BellIcon className="w-4 h-4" />
+            <BellIcon className="w-5 h-5" />
             {unreadCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] bg-red-500 text-white text-[8px] rounded-full flex items-center justify-center font-semibold px-0.5">
+              <span className="absolute top-0 right-0 min-w-[16px] h-[16px] bg-red-500 text-white text-[9px] rounded-full flex items-center justify-center font-semibold px-0.5">
                 {unreadCount}
               </span>
             )}
@@ -354,51 +451,62 @@ function SidePanel({ notifications, onCloseNotification, onViewLocation, onNavig
           {/* Family Button */}
           <button 
             onClick={() => setActivePanel(activePanel === 'family' ? null : 'family')}
-            className={`p-2 rounded-full transition-all cursor-pointer ${
-              activePanel === 'family' ? 'bg-gray-200 text-gray-700' : 'text-gray-600'
+            className={`p-3 rounded-full transition-all cursor-pointer ${
+              activePanel === 'family' 
+                ? 'bg-purple-100 text-purple-600' 
+                : 'text-gray-600 hover:bg-purple-50 hover:text-purple-600'
             }`}
           >
-            <UserGroupIcon className="w-4 h-4" />
+            <UserGroupIcon className="w-5 h-5" />
           </button>
 
-          {/* Ask for Help Button - Centered */}
+          {/* Help Button - Center - Elevated */}
           <button 
-            onClick={handleAskForHelp}
-            disabled={isOnCooldown}
-            className={`w-12 h-12 rounded-full flex flex-col items-center justify-center transition-all -mt-6 ${
-              isOnCooldown
-                ? 'bg-gray-400 cursor-not-allowed opacity-60'
-                : parentHelpActive 
-                  ? 'bg-red-500 shadow-lg shadow-red-500/50 animate-pulse ring-4 ring-red-200 cursor-pointer' 
-                  : 'bg-gradient-to-br from-orange-500 to-orange-600 shadow-lg shadow-orange-500/40 cursor-pointer'
+            onClick={onOpenHelpMenu}
+            disabled={isHelpOnCooldown}
+            className={`relative p-3 rounded-full transition-all -mt-6 shadow-lg ${
+              isHelpOnCooldown
+                ? 'bg-slate-600 text-white cursor-not-allowed'
+                : emergencyMenuOpen
+                  ? 'bg-gray-700 text-white hover:bg-gray-800 cursor-pointer hover:scale-110 active:scale-95'
+                  : 'bg-blue-600 text-white hover:bg-blue-700 cursor-pointer hover:scale-110 active:scale-95'
             }`}
           >
-            {isOnCooldown ? (
-              <span className="text-[10px] text-white font-bold">{formatCooldownTime()}</span>
+            {isHelpOnCooldown ? (
+              <ClockIcon className="w-6 h-6" />
+            ) : emergencyMenuOpen ? (
+              <XMarkIcon className="w-6 h-6" />
             ) : (
-              parentHelpActive ? (
-                <XMarkIcon className="w-5 h-5 text-white" />
-              ) : (
-                <ExclamationTriangleIcon className="w-5 h-5 text-white" />
-              )
+              <FontAwesomeIcon icon={faHandshake} className="w-6 h-6" />
+            )}
+            {isHelpOnCooldown && cooldownTime && (
+              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[8px] font-bold bg-slate-700 text-white px-1 rounded whitespace-nowrap">
+                {cooldownTime}
+              </span>
             )}
           </button>
 
           {/* History Button */}
           <button 
             onClick={() => setActivePanel(activePanel === 'history' ? null : 'history')}
-            className={`p-2 rounded-full transition-all cursor-pointer ${
-              activePanel === 'history' ? 'bg-gray-200 text-gray-700' : 'text-gray-600'
+            className={`p-3 rounded-full transition-all cursor-pointer ${
+              activePanel === 'history' 
+                ? 'bg-indigo-100 text-indigo-600' 
+                : 'text-gray-600 hover:bg-indigo-50 hover:text-indigo-600'
             }`}
           >
-            <ClockIcon className="w-4 h-4" />
+            <ClockIcon className="w-5 h-5" />
           </button>
 
           {/* Profile Button */}
           <button 
             onClick={() => setActivePanel(activePanel === 'settings' ? null : 'settings')}
-            className={`w-8 h-8 rounded-full overflow-hidden transition-all cursor-pointer ${
-              activePanel === 'settings' ? 'ring-2 ring-blue-500' : ''
+            className={`w-10 h-10 rounded-full overflow-hidden transition-all cursor-pointer ${
+              activePanel === 'settings' 
+                ? 'ring-2 ring-blue-500 shadow-sm' 
+                : parentHelpActive 
+                  ? 'ring-2 ring-red-500 ring-offset-1' 
+                  : 'shadow-sm'
             }`}
           >
             {userProfile.photoUrl ? (
@@ -414,8 +522,10 @@ function SidePanel({ notifications, onCloseNotification, onViewLocation, onNavig
               />
             ) : null}
             {!userProfile.photoUrl && (
-              <div className="w-full h-full bg-blue-500 flex items-center justify-center">
-                <span className="text-white text-[10px] font-bold">
+              <div className={`w-full h-full flex items-center justify-center ${
+                parentHelpActive ? 'bg-red-500' : 'bg-blue-600'
+              }`}>
+                <span className="text-white text-xs font-bold">
                   {userProfile.name.charAt(0)}
                 </span>
               </div>
@@ -455,6 +565,7 @@ function SidePanel({ notifications, onCloseNotification, onViewLocation, onNavig
               onUpdateProfile={onUpdateProfile}
               onSignOut={onSignOut}
               showToastMessage={showToastMessage}
+              onOpenHelp={() => setActivePanel('help')}
             />
           )}
 
@@ -553,6 +664,7 @@ function SidePanel({ notifications, onCloseNotification, onViewLocation, onNavig
                   onUpdateProfile={onUpdateProfile}
                   onSignOut={onSignOut}
                   showToastMessage={showToastMessage}
+                  onOpenHelp={() => setActivePanel('help')}
                 />
               )}
 

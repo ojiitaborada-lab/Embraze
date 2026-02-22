@@ -5,7 +5,7 @@ import LoginScreen from './components/LoginScreen';
 import LoadingScreen from './components/LoadingScreen';
 import Toast from './components/Toast';
 import Banner from './components/Banner';
-import { signInWithGoogle, logOut, onAuthChange } from './firebase/auth';
+import { signInWithGoogle, logOut, onAuthChange, getHighQualityPhotoUrl } from './firebase/auth';
 import { 
   getUserProfile, 
   subscribeToActiveAlerts,
@@ -17,13 +17,15 @@ import {
   updateUserLocation,
   createInviteCode,
   getAlertHistory,
-  deleteHistoryItem
+  deleteHistoryItem,
+  subscribeToUserProfile
 } from './firebase/services';
 
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState([]);
+  
   const [allHelpPings, setAllHelpPings] = useState([]);
   const [helpActive, setHelpActive] = useState(false);
   const [helpStopped, setHelpStopped] = useState(false);
@@ -35,61 +37,12 @@ function App() {
   const [familyName, setFamilyName] = useState('');
   const [toastMessage, setToastMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
-  const [alertHistory, setAlertHistory] = useState([
-    // Sample history data for testing
-    {
-      id: 'sample-1',
-      userId: 'user-123',
-      userName: 'John Doe',
-      photoUrl: null,
-      address: 'Mabolo, Cebu City, Central Visayas',
-      latitude: 10.3321,
-      longitude: 123.9021,
-      phone: '+63 912 345 6789',
-      createdAt: Date.now() - (2 * 60 * 60 * 1000), // 2 hours ago
-      stoppedAt: Date.now() - (1.5 * 60 * 60 * 1000), // 1.5 hours ago (30 min duration)
-      status: 'stopped'
-    },
-    {
-      id: 'sample-2',
-      userId: userProfile?.id || 'current-user',
-      userName: userProfile?.name || 'You',
-      photoUrl: userProfile?.photoUrl || null,
-      address: 'IT Park, Lahug, Cebu City',
-      latitude: 10.3181,
-      longitude: 123.8945,
-      phone: userProfile?.phone || '+63 917 123 4567',
-      createdAt: Date.now() - (24 * 60 * 60 * 1000), // Yesterday
-      stoppedAt: Date.now() - (23.5 * 60 * 60 * 1000), // 30 min duration
-      status: 'stopped'
-    },
-    {
-      id: 'sample-3',
-      userId: 'user-456',
-      userName: 'Maria Santos',
-      photoUrl: null,
-      address: 'Ayala Center Cebu, Cebu Business Park',
-      latitude: 10.3181,
-      longitude: 123.9061,
-      phone: '+63 918 765 4321',
-      createdAt: Date.now() - (3 * 24 * 60 * 60 * 1000), // 3 days ago
-      stoppedAt: Date.now() - (3 * 24 * 60 * 60 * 1000) + (15 * 60 * 1000), // 15 min duration
-      status: 'stopped'
-    },
-    {
-      id: 'sample-4',
-      userId: 'user-789',
-      userName: 'Pedro Cruz',
-      photoUrl: null,
-      address: 'SM City Cebu, North Reclamation Area',
-      latitude: 10.3211,
-      longitude: 123.9001,
-      phone: '+63 919 876 5432',
-      createdAt: Date.now() - (7 * 24 * 60 * 60 * 1000), // 7 days ago
-      stoppedAt: Date.now() - (7 * 24 * 60 * 60 * 1000) + (45 * 60 * 1000), // 45 min duration
-      status: 'stopped'
-    }
-  ]);
+  const [helpCooldown, setHelpCooldown] = useState({ isOnCooldown: false, timeLeft: null });
+  const [emergencyMenuOpen, setEmergencyMenuOpen] = useState(false);
+  const [activeSidePanel, setActiveSidePanel] = useState(null);
+  
+  const [history, setHistory] = useState([]);
+  
   const [dismissedAlerts, setDismissedAlerts] = useState(() => {
     // Load dismissed alerts from localStorage
     const stored = localStorage.getItem('dismissedAlerts');
@@ -113,8 +66,8 @@ function App() {
           const profile = {
             id: firebaseUser.uid,
             ...profileResult.data,
-            // Always use the latest photoURL from Firebase Auth
-            photoUrl: firebaseUser.photoURL || profileResult.data.photoUrl
+            // Always use the latest photoURL from Firebase Auth with high quality
+            photoUrl: getHighQualityPhotoUrl(firebaseUser.photoURL) || profileResult.data.photoUrl
           };
           console.log('Final userProfile:', profile);
           setUserProfile(profile);
@@ -125,7 +78,7 @@ function App() {
             name: firebaseUser.displayName || 'User',
             email: firebaseUser.email,
             phone: '',
-            photoUrl: firebaseUser.photoURL
+            photoUrl: getHighQualityPhotoUrl(firebaseUser.photoURL)
           };
           console.log('Fallback userProfile:', profile);
           setUserProfile(profile);
@@ -139,6 +92,26 @@ function App() {
 
     return () => unsubscribe();
   }, []);
+
+  // Subscribe to real-time user profile updates
+  useEffect(() => {
+    if (!user) return;
+
+    const unsubscribe = subscribeToUserProfile(user.uid, (profileData) => {
+      if (profileData) {
+        const profile = {
+          id: user.uid,
+          ...profileData,
+          // Always use the latest photoURL from Firebase Auth with high quality
+          photoUrl: getHighQualityPhotoUrl(user.photoURL) || profileData.photoUrl
+        };
+        console.log('Profile updated from Firestore:', profile);
+        setUserProfile(profile);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [user]);
 
   // Subscribe to real-time emergency alerts
   useEffect(() => {
@@ -164,6 +137,10 @@ function App() {
         if (userStoppedAlert) {
           setHelpActive(false);
           setHelpStopped(true);
+        } else {
+          // No active or stopped alert - reset both states
+          setHelpActive(false);
+          setHelpStopped(false);
         }
       }
       
@@ -174,23 +151,7 @@ function App() {
         !dismissedAlerts.has(alert.id)
       );
       
-      // Add test notification for demo purposes
-      const testNotification = {
-        id: 'test-notification-1',
-        userId: 'test-user-123',
-        userName: 'Maria Santos',
-        photoUrl: null,
-        address: 'Ayala Center Cebu, Cebu Business Park, Cebu City',
-        latitude: 10.3181,
-        longitude: 123.9061,
-        phone: '+63 918 765 4321',
-        isActive: true,
-        createdAt: {
-          seconds: Math.floor(Date.now() / 1000)
-        }
-      };
-      
-      setNotifications([testNotification, ...otherUsersActiveAlerts].slice(0, 10)); // Show max 10 notifications
+      setNotifications(otherUsersActiveAlerts.slice(0, 10)); // Show max 10 notifications
     });
 
     return () => unsubscribe();
@@ -205,75 +166,12 @@ function App() {
     }
 
     const unsubscribe = subscribeFamilyMembers(userProfile.familyId, ({ members, familyName }) => {
-      // Add sample family members for testing
-      const sampleMembers = [
-        {
-          id: userProfile.id,
-          name: userProfile.name,
-          email: userProfile.email,
-          phone: userProfile.phone || '+63 917 123 4567',
-          photoUrl: userProfile.photoUrl,
-          isCreator: true,
-          isOnline: true,
-          location: {
-            latitude: 10.3181,
-            longitude: 123.8945,
-            address: 'IT Park, Lahug, Cebu City'
-          },
-          lastUpdated: Date.now()
-        },
-        {
-          id: 'sample-member-1',
-          name: 'Maria Santos',
-          email: 'maria.santos@example.com',
-          phone: '+63 918 765 4321',
-          photoUrl: null,
-          isCreator: false,
-          isOnline: true,
-          location: {
-            latitude: 10.3181,
-            longitude: 123.9061,
-            address: 'Ayala Center Cebu, Cebu Business Park'
-          },
-          lastUpdated: Date.now()
-        },
-        {
-          id: 'sample-member-2',
-          name: 'Juan Dela Cruz',
-          email: 'juan.delacruz@example.com',
-          phone: '+63 919 876 5432',
-          photoUrl: null,
-          isCreator: false,
-          isOnline: true,
-          location: {
-            latitude: 10.3211,
-            longitude: 123.9001,
-            address: 'SM City Cebu, North Reclamation Area'
-          },
-          lastUpdated: Date.now()
-        },
-        {
-          id: 'sample-member-3',
-          name: 'Ana Reyes',
-          email: 'ana.reyes@example.com',
-          phone: '+63 920 123 4567',
-          photoUrl: null,
-          isCreator: false,
-          isOnline: false,
-          location: null,
-          lastUpdated: Date.now() - (30 * 60 * 1000) // 30 minutes ago
-        }
-      ];
-      
-      // Merge real members with sample members (prioritize real members)
-      const mergedMembers = members.length > 0 ? members : sampleMembers;
-      
-      setFamilyMembers(mergedMembers);
-      setFamilyName(familyName || 'Sample Family');
+      setFamilyMembers(members);
+      setFamilyName(familyName);
     });
 
     return () => unsubscribe();
-  }, [userProfile?.familyId, userProfile?.id, userProfile?.name, userProfile?.email, userProfile?.phone, userProfile?.photoUrl]);
+  }, [userProfile?.familyId]);
 
   // Update user location periodically
   useEffect(() => {
@@ -309,7 +207,7 @@ function App() {
       if (user?.uid && userProfile?.familyId) {
         const result = await getAlertHistory(user.uid);
         if (result.success) {
-          setAlertHistory(result.history);
+          setHistory(result.history);
         }
       }
     };
@@ -489,34 +387,38 @@ function App() {
     }
   };
 
+  const handleOpenHelpMenu = () => {
+    if (mapViewRef.current) {
+      mapViewRef.current.toggleHelpMenu();
+    }
+  };
+
   const handleClearHistory = async () => {
-    setAlertHistory([]);
+    setHistory([]);
     showToastMessage('History cleared');
   };
 
   const handleClearHistoryItem = async (itemId) => {
     const result = await deleteHistoryItem(itemId);
     if (result.success) {
-      setAlertHistory(prev => prev.filter(item => item.id !== itemId));
+      setHistory(prev => prev.filter(item => item.id !== itemId));
       showToastMessage('Item removed from history');
     } else {
       showToastMessage('Failed to remove item');
     }
   };
 
-  const handleAskForHelp = () => {
-    // Trigger the ask for help function in MapView
-    setHelpActive(true);
-    setHelpStopped(false);
+  const handleAskForHelp = (emergencyType, additionalData) => {
+    // Trigger the ask for help function in MapView with emergency type and additional data
+    // Don't set helpActive here - let the Firebase subscription handle it
     if (mapViewRef.current) {
-      mapViewRef.current.triggerAskForHelp();
+      mapViewRef.current.triggerAskForHelp(emergencyType, additionalData);
     }
   };
 
   const handleStopHelp = () => {
     // Stop the help request in MapView
-    setHelpActive(false);
-    setHelpStopped(true);
+    // Don't set helpActive here - let the Firebase subscription handle it
     if (mapViewRef.current) {
       mapViewRef.current.stopHelp();
     }
@@ -563,6 +465,11 @@ function App() {
             helpActive={helpActive}
             helpStopped={helpStopped}
             familyMembers={familyMembers}
+            onAskForHelp={handleAskForHelp}
+            onStopHelp={handleStopHelp}
+            onCooldownChange={setHelpCooldown}
+            onEmergencyMenuChange={setEmergencyMenuOpen}
+            activeSidePanel={activeSidePanel}
           />
         </div>
         <SidePanel 
@@ -572,8 +479,6 @@ function App() {
           onNavigate={handleNavigate}
           userProfile={userProfile}
           onUpdateProfile={handleUpdateProfile}
-          onAskForHelp={handleAskForHelp}
-          onStopHelp={handleStopHelp}
           helpActive={helpActive}
           helpStopped={helpStopped}
           onSignOut={handleSignOut}
@@ -588,9 +493,14 @@ function App() {
           showToastMessage={showToastMessage}
           onFindMyLocation={handleFindMyLocation}
           onClearAllNotifications={handleClearAllNotifications}
-          alertHistory={alertHistory}
+          alertHistory={history}
           onClearHistory={handleClearHistory}
           onClearHistoryItem={handleClearHistoryItem}
+          onOpenHelpMenu={handleOpenHelpMenu}
+          isHelpOnCooldown={helpCooldown.isOnCooldown}
+          cooldownTime={helpCooldown.timeLeft}
+          emergencyMenuOpen={emergencyMenuOpen}
+          onPanelChange={setActiveSidePanel}
         />
       </div>
     </div>

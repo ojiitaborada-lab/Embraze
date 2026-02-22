@@ -8,6 +8,22 @@ import {
 import { auth } from './config';
 import { saveUserProfile, getUserProfile } from './services';
 
+// Helper function to get high-quality Google photo URL
+export const getHighQualityPhotoUrl = (photoUrl) => {
+  if (!photoUrl) return null;
+  
+  // Replace size parameter to get higher quality image
+  // Google photos typically end with =s96-c, we'll change to =s400-c for better quality
+  let highQualityUrl = photoUrl.replace(/=s\d+-c$/, '=s400-c');
+  
+  // If no size parameter exists, add it
+  if (!highQualityUrl.includes('=s')) {
+    highQualityUrl = highQualityUrl + '=s400-c';
+  }
+  
+  return highQualityUrl;
+};
+
 // Google Sign-In
 export const signInWithGoogle = async () => {
   try {
@@ -18,6 +34,9 @@ export const signInWithGoogle = async () => {
     
     const result = await signInWithPopup(auth, provider);
     const user = result.user;
+    
+    // Get high-quality photo URL
+    const photoUrl = getHighQualityPhotoUrl(user.photoURL);
     
     // Check if user profile exists
     const profileResult = await getUserProfile(user.uid);
@@ -31,13 +50,13 @@ export const signInWithGoogle = async () => {
         name: user.displayName || 'User',
         email: user.email,
         phone: '',
-        photoUrl: user.photoURL,
+        photoUrl: photoUrl,
         createdAt: new Date().toISOString()
       });
     } else {
       // Update existing user's photoUrl in case it changed
       await saveUserProfile(user.uid, {
-        photoUrl: user.photoURL
+        photoUrl: photoUrl
       });
     }
     

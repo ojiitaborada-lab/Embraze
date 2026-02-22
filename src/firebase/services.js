@@ -74,6 +74,8 @@ export const getUserProfile = async (userId) => {
 };
 
 // Emergency Alert Services
+// NOTE: Photos are currently stored as base64 in Firestore (MVP)
+// TODO: For production, upload photos to Firebase Storage and store URLs
 export const createEmergencyAlert = async (userId, alertData) => {
   try {
     const alertRef = doc(collection(db, 'emergencyAlerts'));
@@ -87,6 +89,44 @@ export const createEmergencyAlert = async (userId, alertData) => {
     return { success: true, alertId: alertRef.id };
   } catch (error) {
     console.error('Error creating alert:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const createOrUpdateEmergencyAlert = async (userId, alertData) => {
+  try {
+    // Check if user already has an active alert
+    const q = query(
+      collection(db, 'emergencyAlerts'),
+      where('userId', '==', userId),
+      where('status', '==', 'active')
+    );
+    
+    const snapshot = await getDocs(q);
+    
+    if (!snapshot.empty) {
+      // Update existing alert
+      const existingAlertDoc = snapshot.docs[0];
+      await updateDoc(existingAlertDoc.ref, {
+        ...alertData,
+        status: 'active',
+        updatedAt: serverTimestamp()
+      });
+      return { success: true, alertId: existingAlertDoc.id, isUpdate: true };
+    } else {
+      // Create new alert
+      const alertRef = doc(collection(db, 'emergencyAlerts'));
+      await setDoc(alertRef, {
+        ...alertData,
+        userId,
+        status: 'active',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+      return { success: true, alertId: alertRef.id, isUpdate: false };
+    }
+  } catch (error) {
+    console.error('Error creating/updating alert:', error);
     return { success: false, error: error.message };
   }
 };

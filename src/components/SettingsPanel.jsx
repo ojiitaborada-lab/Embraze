@@ -6,18 +6,24 @@ import {
   BellIcon, 
   MapPinIcon, 
   TrashIcon,
-  CheckCircleIcon
+  CheckCircleIcon,
+  QuestionMarkCircleIcon,
+  SunIcon,
+  MoonIcon,
+  ComputerDesktopIcon
 } from '@heroicons/react/24/solid';
 import { saveUserProfile, deleteUserData } from '../firebase/services';
 import { deleteAccount } from '../firebase/auth';
 
-function SettingsPanel({ isOpen, onClose, userProfile, onUpdateProfile, onSignOut, showToastMessage }) {
+function SettingsPanel({ isOpen, onClose, userProfile, onUpdateProfile, onSignOut, showToastMessage, onOpenHelp }) {
   const [formData, setFormData] = useState(userProfile);
   const [notificationSound, setNotificationSound] = useState(true);
   const [autoShareLocation, setAutoShareLocation] = useState(true);
-  const [logoutConfirm, setLogoutConfirm] = useState(false);
+  const [showLogoutDropdown, setShowLogoutDropdown] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [showThemeDropup, setShowThemeDropup] = useState(false);
+  const [selectedTheme, setSelectedTheme] = useState('light'); // 'light', 'dark', 'system'
 
   // Update formData when userProfile changes
   useEffect(() => {
@@ -85,6 +91,9 @@ function SettingsPanel({ isOpen, onClose, userProfile, onUpdateProfile, onSignOu
   };
 
   const handleSave = async () => {
+    // Check if name was changed
+    const nameChanged = formData.name !== userProfile.name;
+    
     const updatedProfile = {
       ...formData,
       settings: {
@@ -93,12 +102,21 @@ function SettingsPanel({ isOpen, onClose, userProfile, onUpdateProfile, onSignOu
       }
     };
     
+    // If name was changed, update lastNameChange timestamp
+    if (nameChanged && canChangeName) {
+      updatedProfile.lastNameChange = Date.now();
+    }
+    
     // Save to Firebase
     const result = await saveUserProfile(userProfile.id, updatedProfile);
     
     if (result.success) {
       onUpdateProfile(updatedProfile);
-      showToastMessage('Profile saved successfully!');
+      if (nameChanged) {
+        showToastMessage('Profile saved! Name can be changed again in 7 days.');
+      } else {
+        showToastMessage('Profile saved successfully!');
+      }
       onClose();
     } else {
       showToastMessage('Failed to save profile: ' + result.error);
@@ -123,10 +141,6 @@ function SettingsPanel({ isOpen, onClose, userProfile, onUpdateProfile, onSignOu
   };
 
   const handleLogout = () => {
-    if (!logoutConfirm) {
-      setLogoutConfirm(true);
-      return;
-    }
     onSignOut();
     onClose();
   };
@@ -182,18 +196,20 @@ function SettingsPanel({ isOpen, onClose, userProfile, onUpdateProfile, onSignOu
   if (!isOpen) return null;
 
   return (
-    <div className="h-full w-full bg-white flex flex-col">
-        {/* Header */}
-        <div className="px-4 py-4 border-b border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-900">Profile</h3>
+    <div className="h-full w-full bg-white flex flex-col relative">
+
+      {/* Header */}
+        <div className="px-3 py-2.5 border-b border-slate-200 bg-slate-50">
+          <h3 className="text-sm font-bold text-gray-900 tracking-tight">Profile</h3>
+          <p className="text-[9px] text-gray-600 font-medium mt-0.5">Manage your account</p>
         </div>
 
         {/* Content */}
-        <div className="px-4 py-4 space-y-4 overflow-y-auto flex-1">
+        <div className="px-3 py-2.5 space-y-3 overflow-y-auto flex-1">
           {/* Profile Photo */}
           <div className="flex flex-col items-center">
             <div className="relative group">
-              <div className="w-14 h-14 rounded-full bg-blue-500 flex items-center justify-center text-white text-lg font-bold shadow-lg shadow-blue-500/30 overflow-hidden">
+              <div className="w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center text-white text-xl font-bold shadow-lg overflow-hidden ring-2 ring-blue-200 ring-offset-2">
                 {formData.photoUrl ? (
                   <img 
                     src={formData.photoUrl} 
@@ -208,11 +224,11 @@ function SettingsPanel({ isOpen, onClose, userProfile, onUpdateProfile, onSignOu
                   />
                 ) : null}
                 {!formData.photoUrl && (
-                  <span className="text-white text-lg font-bold">{formData.name.charAt(0)}</span>
+                  <span className="text-white text-xl font-bold">{formData.name.charAt(0)}</span>
                 )}
               </div>
-              <label className="absolute bottom-0 right-0 w-6 h-6 bg-white hover:bg-blue-50 rounded-full flex items-center justify-center text-blue-500 shadow-lg transition-all border-2 border-white group-hover:scale-110 cursor-pointer">
-                <CameraIcon className="w-2 h-2" />
+              <label className="absolute bottom-0 right-0 w-6 h-6 bg-white hover:bg-blue-50 rounded-full flex items-center justify-center text-blue-600 shadow-lg transition-all border-2 border-white group-hover:scale-110 cursor-pointer">
+                <CameraIcon className="w-3 h-3" />
                 <input 
                   type="file" 
                   accept="image/*"
@@ -221,14 +237,14 @@ function SettingsPanel({ isOpen, onClose, userProfile, onUpdateProfile, onSignOu
                 />
               </label>
             </div>
-            <p className="mt-1 text-[9px] text-gray-400">Click camera to change</p>
+            <p className="mt-1.5 text-[9px] text-gray-500 font-medium">Click camera to change photo</p>
           </div>
 
           {/* Form Fields */}
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             {/* Name */}
             <div>
-              <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+              <label className="block text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1">
                 Full Name
               </label>
               <input
@@ -237,19 +253,19 @@ function SettingsPanel({ isOpen, onClose, userProfile, onUpdateProfile, onSignOu
                 value={formData.name}
                 onChange={handleChange}
                 disabled={!canChangeName}
-                className={`w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none text-sm ${
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none text-xs shadow-sm ${
                   canChangeName 
-                    ? 'bg-gray-50 focus:bg-white text-gray-900' 
-                    : 'bg-gray-100 text-gray-500 cursor-not-allowed'
+                    ? 'bg-white border-gray-200 focus:bg-white text-gray-900' 
+                    : 'bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed'
                 }`}
                 placeholder="Enter your name"
               />
               {!canChangeName ? (
-                <p className="text-[10px] text-orange-600 mt-1">
+                <p className="text-[9px] text-orange-600 mt-1 font-medium">
                   You can change your name again in {daysLeft} day{daysLeft > 1 ? 's' : ''}
                 </p>
               ) : (
-                <p className="text-[10px] text-gray-400 mt-1">
+                <p className="text-[9px] text-gray-500 mt-1">
                   Name can be changed once every 7 days
                 </p>
               )}
@@ -257,7 +273,7 @@ function SettingsPanel({ isOpen, onClose, userProfile, onUpdateProfile, onSignOu
 
             {/* Email */}
             <div>
-              <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+              <label className="block text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1">
                 Email Address
               </label>
               <input
@@ -265,15 +281,15 @@ function SettingsPanel({ isOpen, onClose, userProfile, onUpdateProfile, onSignOu
                 name="email"
                 value={formData.email}
                 disabled
-                className="w-full px-3 py-2 bg-gray-100 border border-gray-200 rounded-lg text-gray-500 text-sm cursor-not-allowed"
+                className="w-full px-3 py-2 bg-gray-100 border border-gray-200 rounded-lg text-gray-500 text-xs cursor-not-allowed shadow-sm"
                 placeholder="Enter your email"
               />
-              <p className="text-[10px] text-gray-400 mt-1">Email cannot be changed (Google account)</p>
+              <p className="text-[9px] text-gray-500 mt-1">Email cannot be changed (Google account)</p>
             </div>
 
             {/* Phone */}
             <div>
-              <label className="block text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+              <label className="block text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1">
                 Phone Number
               </label>
               <input
@@ -281,32 +297,34 @@ function SettingsPanel({ isOpen, onClose, userProfile, onUpdateProfile, onSignOu
                 name="phone"
                 value={formData.phone}
                 onChange={handleChange}
-                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white transition-all outline-none text-gray-900 text-sm"
+                className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white transition-all outline-none text-gray-900 text-xs shadow-sm"
                 placeholder="+63 912 345 6789"
                 maxLength={16}
               />
-              <p className="text-[10px] text-gray-400 mt-1">Format: +63 XXX XXX XXXX</p>
+              <p className="text-[9px] text-gray-500 mt-1">Format: +63 XXX XXX XXXX</p>
             </div>
           </div>
 
           {/* Divider */}
-          <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent"></div>
+          <div className="h-px bg-slate-200 my-1.5"></div>
 
           {/* Notification Settings */}
           <div>
-            <div className="flex items-center gap-2 mb-1.5">
-              <BellIcon className="w-3.5 h-3.5 text-blue-500" />
-              <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center shadow-sm">
+                <BellIcon className="w-3 h-3 text-white" />
+              </div>
+              <label className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">
                 Notifications
               </label>
             </div>
-            <div className="bg-gray-50 rounded-lg p-2.5">
+            <div className="bg-white rounded-lg p-2.5 shadow-sm border border-gray-100/50">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-700">Sound & Vibration</span>
+                <span className="text-[10px] text-gray-700 font-medium">Sound & Vibration</span>
                 <button
                   onClick={() => setNotificationSound(!notificationSound)}
-                  className={`relative w-10 h-5 rounded-full transition-colors cursor-pointer ${
-                    notificationSound ? 'bg-blue-500' : 'bg-gray-300'
+                  className={`relative w-10 h-5 rounded-full transition-all cursor-pointer shadow-inner ${
+                    notificationSound ? 'bg-blue-600' : 'bg-slate-300'
                   }`}
                 >
                   <div
@@ -321,22 +339,24 @@ function SettingsPanel({ isOpen, onClose, userProfile, onUpdateProfile, onSignOu
 
           {/* Auto-share Location */}
           <div>
-            <div className="flex items-center gap-2 mb-1.5">
-              <MapPinIcon className="w-3.5 h-3.5 text-blue-500" />
-              <label className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center shadow-sm">
+                <MapPinIcon className="w-3 h-3 text-white" />
+              </div>
+              <label className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">
                 Location
               </label>
             </div>
-            <div className="bg-gray-50 rounded-lg p-2.5">
-              <div className="flex items-center justify-between gap-3">
+            <div className="bg-white rounded-lg p-2.5 shadow-sm border border-gray-100/50">
+              <div className="flex items-center justify-between gap-2">
                 <div>
-                  <span className="text-xs text-gray-700 block">Auto-share Location</span>
-                  <span className="text-[10px] text-gray-500">When help is activated</span>
+                  <span className="text-[10px] text-gray-700 font-medium block">Auto-share Location</span>
+                  <span className="text-[9px] text-gray-500">When help is activated</span>
                 </div>
                 <button
                   onClick={() => setAutoShareLocation(!autoShareLocation)}
-                  className={`relative w-10 h-5 rounded-full transition-colors cursor-pointer flex-shrink-0 ${
-                    autoShareLocation ? 'bg-blue-500' : 'bg-gray-300'
+                  className={`relative w-10 h-5 rounded-full transition-all cursor-pointer flex-shrink-0 shadow-inner ${
+                    autoShareLocation ? 'bg-blue-600' : 'bg-slate-300'
                   }`}
                 >
                   <div
@@ -349,99 +369,236 @@ function SettingsPanel({ isOpen, onClose, userProfile, onUpdateProfile, onSignOu
             </div>
           </div>
 
+          {/* Theme Selector with Drop-up - Mobile Only */}
+          <div className="relative md:hidden">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center shadow-sm">
+                {selectedTheme === 'light' ? (
+                  <SunIcon className="w-3 h-3 text-white" />
+                ) : selectedTheme === 'dark' ? (
+                  <MoonIcon className="w-3 h-3 text-white" />
+                ) : (
+                  <ComputerDesktopIcon className="w-3 h-3 text-white" />
+                )}
+              </div>
+              <label className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">
+                Appearance
+              </label>
+            </div>
+            
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowThemeDropup(!showThemeDropup);
+              }}
+              className="w-full bg-white hover:bg-gray-50 rounded-lg p-2.5 shadow-sm border border-gray-100/50 transition-all cursor-pointer"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {selectedTheme === 'light' && <SunIcon className="w-4 h-4 text-gray-700" />}
+                  {selectedTheme === 'dark' && <MoonIcon className="w-4 h-4 text-gray-700" />}
+                  {selectedTheme === 'system' && <ComputerDesktopIcon className="w-4 h-4 text-gray-700" />}
+                  <span className="text-[10px] text-gray-700 font-medium capitalize">{selectedTheme} Mode</span>
+                </div>
+                <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </button>
+
+            {/* Drop-up Theme Menu */}
+            {showThemeDropup && (
+              <>
+                {/* Invisible backdrop */}
+                <div 
+                  className="fixed inset-0 z-40 bg-transparent" 
+                  style={{ pointerEvents: 'auto' }}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setShowThemeDropup(false);
+                  }}
+                />
+                
+                {/* Drop-up */}
+                <div 
+                  className="absolute left-0 right-0 bottom-full mb-1 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden"
+                  style={{ pointerEvents: 'auto' }}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                >
+                  <div className="p-1.5">
+                    {/* Light Mode */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedTheme('light');
+                        setShowThemeDropup(false);
+                      }}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all text-left ${
+                        selectedTheme === 'light' 
+                          ? 'bg-blue-50 text-blue-700' 
+                          : 'hover:bg-gray-50 text-gray-700'
+                      }`}
+                    >
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                        selectedTheme === 'light' ? 'bg-blue-100' : 'bg-gray-100'
+                      }`}>
+                        <SunIcon className={`w-4 h-4 ${
+                          selectedTheme === 'light' ? 'text-blue-600' : 'text-gray-600'
+                        }`} />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-[10px] font-bold">Light</p>
+                        <p className="text-[9px] text-gray-500">Bright and clear</p>
+                      </div>
+                      {selectedTheme === 'light' && (
+                        <CheckCircleIcon className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                      )}
+                    </button>
+
+                    {/* Dark Mode */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedTheme('dark');
+                        setShowThemeDropup(false);
+                      }}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all text-left ${
+                        selectedTheme === 'dark' 
+                          ? 'bg-blue-50 text-blue-700' 
+                          : 'hover:bg-gray-50 text-gray-700'
+                      }`}
+                    >
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                        selectedTheme === 'dark' ? 'bg-blue-100' : 'bg-gray-100'
+                      }`}>
+                        <MoonIcon className={`w-4 h-4 ${
+                          selectedTheme === 'dark' ? 'text-blue-600' : 'text-gray-600'
+                        }`} />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-[10px] font-bold">Dark</p>
+                        <p className="text-[9px] text-gray-500">Easy on the eyes</p>
+                      </div>
+                      {selectedTheme === 'dark' && (
+                        <CheckCircleIcon className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                      )}
+                    </button>
+
+                    {/* System Mode */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedTheme('system');
+                        setShowThemeDropup(false);
+                      }}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all text-left ${
+                        selectedTheme === 'system' 
+                          ? 'bg-blue-50 text-blue-700' 
+                          : 'hover:bg-gray-50 text-gray-700'
+                      }`}
+                    >
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                        selectedTheme === 'system' ? 'bg-blue-100' : 'bg-gray-100'
+                      }`}>
+                        <ComputerDesktopIcon className={`w-4 h-4 ${
+                          selectedTheme === 'system' ? 'text-blue-600' : 'text-gray-600'
+                        }`} />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-[10px] font-bold">System</p>
+                        <p className="text-[9px] text-gray-500">Match device settings</p>
+                      </div>
+                      {selectedTheme === 'system' && (
+                        <CheckCircleIcon className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                      )}
+                    </button>
+                  </div>
+                  
+                  <div className="px-3 py-2 bg-gray-50 border-t border-gray-100">
+                    <p className="text-[9px] text-gray-500 text-center">Coming soon</p>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
           {/* Save Button */}
           <button
             onClick={handleSave}
-            className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2.5 rounded-full font-medium transition-all text-sm cursor-pointer flex items-center justify-center gap-2"
+            className="w-full bg-white hover:bg-gray-50 text-gray-700 py-2 rounded-full font-bold transition-all text-xs cursor-pointer flex items-center justify-center gap-1.5 shadow-sm active:scale-95 border-2 border-gray-200 hover:border-gray-300"
           >
-            <CheckCircleIcon className="w-4 h-4" />
+            <CheckCircleIcon className="w-3.5 h-3.5" />
             Save Profile
           </button>
 
-          {/* Logout Button */}
-          {!logoutConfirm ? (
+          {/* Logout Button with Drop-up - Mobile Only */}
+          <div className="relative md:hidden">
             <button
-              onClick={handleLogout}
-              className="w-full bg-white hover:bg-red-50 text-red-600 py-2.5 rounded-full font-medium transition-all border border-red-200 hover:border-red-300 flex items-center justify-center gap-2 text-sm cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowLogoutDropdown(!showLogoutDropdown);
+              }}
+              className="w-full bg-white hover:bg-gray-100 text-gray-700 py-2 rounded-full font-bold transition-all border-2 border-gray-200 hover:border-gray-300 flex items-center justify-center gap-1.5 text-xs cursor-pointer shadow-sm active:scale-95"
             >
               <ArrowRightOnRectangleIcon className="w-3.5 h-3.5" />
               Logout
             </button>
-          ) : (
-            <div className="space-y-2">
-              <p className="text-xs text-gray-700 text-center font-medium">Are you sure you want to logout?</p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setLogoutConfirm(false)}
-                  className="flex-1 bg-white hover:bg-gray-100 text-gray-700 py-2 rounded-full font-medium transition-all text-xs cursor-pointer border border-gray-200"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleLogout}
-                  className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded-full font-medium transition-all text-xs cursor-pointer"
-                >
-                  Yes, Logout
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Divider */}
-          <div className="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent"></div>
-
-          {/* Delete Account Button */}
-          {!deleteConfirm ? (
-            <button
-              onClick={handleDeleteAccount}
-              className="w-full bg-white hover:bg-red-100 text-red-700 py-2.5 rounded-full font-medium transition-all border border-red-300 hover:border-red-400 flex items-center justify-center gap-2 text-sm cursor-pointer"
-            >
-              <TrashIcon className="w-3.5 h-3.5" />
-              Delete Account
-            </button>
-          ) : (
-            <div className="space-y-2">
-              <p className="text-xs text-red-700 text-center font-semibold">⚠️ This will permanently delete your account</p>
-              
-              <div>
-                <input
-                  type="text"
-                  value={deleteConfirmText}
-                  onChange={(e) => setDeleteConfirmText(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-1 focus:ring-red-500 focus:border-red-500 focus:bg-white transition-all outline-none text-gray-900 text-xs text-center"
-                  placeholder='Type "delete my account"'
-                />
-              </div>
-              
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    setDeleteConfirm(false);
-                    setDeleteConfirmText('');
+            
+            {/* Drop-up Confirmation */}
+            {showLogoutDropdown && (
+              <>
+                {/* Invisible backdrop to close dropdown */}
+                <div 
+                  className="fixed inset-0 z-40 bg-transparent" 
+                  style={{ pointerEvents: 'auto' }}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setShowLogoutDropdown(false);
                   }}
-                  className="flex-1 bg-white hover:bg-gray-100 text-gray-700 py-2 rounded-full font-medium transition-all text-xs cursor-pointer border border-gray-200"
+                />
+                
+                {/* Drop-up */}
+                <div 
+                  className="absolute left-0 right-0 bottom-full mb-1 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 overflow-hidden"
+                  style={{ pointerEvents: 'auto' }}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
                 >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleDeleteAccount}
-                  disabled={deleteConfirmText.toLowerCase() !== 'delete my account'}
-                  className={`flex-1 py-2 rounded-full font-medium transition-all text-xs ${
-                    deleteConfirmText.toLowerCase() === 'delete my account'
-                      ? 'bg-red-600 hover:bg-red-700 text-white cursor-pointer'
-                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                  }`}
-                >
-                  Delete Forever
-                </button>
-              </div>
-            </div>
-          )}
-          {!deleteConfirm && (
-            <p className="text-[10px] text-gray-400 text-center -mt-1">
-              This action cannot be undone
-            </p>
-          )}
+                  <div className="p-1.5">
+                    {/* Logout Option */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowLogoutDropdown(false);
+                        handleLogout();
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all text-left hover:bg-gray-50 text-gray-700 cursor-pointer"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                        <ArrowRightOnRectangleIcon className="w-4 h-4 text-gray-600" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-[10px] font-bold">Sign Out</p>
+                        <p className="text-[9px] text-gray-500">Sign in again later</p>
+                      </div>
+                    </button>
+                  </div>
+                  
+                  <div className="px-3 py-2 bg-gray-50 border-t border-gray-100">
+                    <p className="text-[9px] text-gray-900 font-semibold truncate">{userProfile.name}</p>
+                    <p className="text-[8px] text-gray-500 truncate">{userProfile.email}</p>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
   );
