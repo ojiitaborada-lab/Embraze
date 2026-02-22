@@ -315,7 +315,7 @@ const MapView = forwardRef(({ onNewHelpRequest, allHelpPings, userProfile, helpA
           setIsListening(false);
           
           // Auto-trigger emergency with detected type
-          setSelectedEmergencyType(type);
+          setPendingEmergencyType(type);
           setShowNotesModal(true);
           setShowEmergencyMenu(false);
           
