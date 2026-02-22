@@ -311,10 +311,16 @@ function SidePanel({ notifications, onCloseNotification, onViewLocation, onNavig
             {userProfile.photoUrl ? (
               <img 
                 src={userProfile.photoUrl} 
-                alt={userProfile.name}
+                alt=""
                 className="w-full h-full object-cover"
+                referrerPolicy="no-referrer"
+                crossOrigin="anonymous"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                }}
               />
-            ) : (
+            ) : null}
+            {!userProfile.photoUrl && (
               <div className="w-full h-full bg-blue-500 flex items-center justify-center">
                 <span className="text-white text-sm font-bold">
                   {userProfile.name.charAt(0)}
@@ -398,10 +404,16 @@ function SidePanel({ notifications, onCloseNotification, onViewLocation, onNavig
             {userProfile.photoUrl ? (
               <img 
                 src={userProfile.photoUrl} 
-                alt={userProfile.name}
+                alt=""
                 className="w-full h-full object-cover"
+                referrerPolicy="no-referrer"
+                crossOrigin="anonymous"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                }}
               />
-            ) : (
+            ) : null}
+            {!userProfile.photoUrl && (
               <div className="w-full h-full bg-blue-500 flex items-center justify-center">
                 <span className="text-white text-[10px] font-bold">
                   {userProfile.name.charAt(0)}

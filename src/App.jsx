@@ -173,7 +173,24 @@ function App() {
         alert.status === 'active' &&
         !dismissedAlerts.has(alert.id)
       );
-      setNotifications(otherUsersActiveAlerts.slice(0, 10)); // Show max 10 notifications
+      
+      // Add test notification for demo purposes
+      const testNotification = {
+        id: 'test-notification-1',
+        userId: 'test-user-123',
+        userName: 'Maria Santos',
+        photoUrl: null,
+        address: 'Ayala Center Cebu, Cebu Business Park, Cebu City',
+        latitude: 10.3181,
+        longitude: 123.9061,
+        phone: '+63 918 765 4321',
+        isActive: true,
+        createdAt: {
+          seconds: Math.floor(Date.now() / 1000)
+        }
+      };
+      
+      setNotifications([testNotification, ...otherUsersActiveAlerts].slice(0, 10)); // Show max 10 notifications
     });
 
     return () => unsubscribe();
@@ -188,12 +205,75 @@ function App() {
     }
 
     const unsubscribe = subscribeFamilyMembers(userProfile.familyId, ({ members, familyName }) => {
-      setFamilyMembers(members);
-      setFamilyName(familyName);
+      // Add sample family members for testing
+      const sampleMembers = [
+        {
+          id: userProfile.id,
+          name: userProfile.name,
+          email: userProfile.email,
+          phone: userProfile.phone || '+63 917 123 4567',
+          photoUrl: userProfile.photoUrl,
+          isCreator: true,
+          isOnline: true,
+          location: {
+            latitude: 10.3181,
+            longitude: 123.8945,
+            address: 'IT Park, Lahug, Cebu City'
+          },
+          lastUpdated: Date.now()
+        },
+        {
+          id: 'sample-member-1',
+          name: 'Maria Santos',
+          email: 'maria.santos@example.com',
+          phone: '+63 918 765 4321',
+          photoUrl: null,
+          isCreator: false,
+          isOnline: true,
+          location: {
+            latitude: 10.3181,
+            longitude: 123.9061,
+            address: 'Ayala Center Cebu, Cebu Business Park'
+          },
+          lastUpdated: Date.now()
+        },
+        {
+          id: 'sample-member-2',
+          name: 'Juan Dela Cruz',
+          email: 'juan.delacruz@example.com',
+          phone: '+63 919 876 5432',
+          photoUrl: null,
+          isCreator: false,
+          isOnline: true,
+          location: {
+            latitude: 10.3211,
+            longitude: 123.9001,
+            address: 'SM City Cebu, North Reclamation Area'
+          },
+          lastUpdated: Date.now()
+        },
+        {
+          id: 'sample-member-3',
+          name: 'Ana Reyes',
+          email: 'ana.reyes@example.com',
+          phone: '+63 920 123 4567',
+          photoUrl: null,
+          isCreator: false,
+          isOnline: false,
+          location: null,
+          lastUpdated: Date.now() - (30 * 60 * 1000) // 30 minutes ago
+        }
+      ];
+      
+      // Merge real members with sample members (prioritize real members)
+      const mergedMembers = members.length > 0 ? members : sampleMembers;
+      
+      setFamilyMembers(mergedMembers);
+      setFamilyName(familyName || 'Sample Family');
     });
 
     return () => unsubscribe();
-  }, [userProfile?.familyId]);
+  }, [userProfile?.familyId, userProfile?.id, userProfile?.name, userProfile?.email, userProfile?.phone, userProfile?.photoUrl]);
 
   // Update user location periodically
   useEffect(() => {

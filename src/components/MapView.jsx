@@ -647,10 +647,16 @@ const MapView = forwardRef(({ onNewHelpRequest, allHelpPings, userProfile, helpA
                       {member.photoUrl ? (
                         <img 
                         src={member.photoUrl} 
-                        alt={member.name}
+                        alt=""
                         className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                        crossOrigin="anonymous"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                        }}
                       />
-                    ) : (
+                    ) : null}
+                    {!member.photoUrl && (
                       <div className="w-full h-full flex items-center justify-center text-white text-sm font-bold">
                         {member.name.charAt(0)}
                       </div>

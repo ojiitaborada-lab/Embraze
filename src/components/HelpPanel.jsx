@@ -27,19 +27,19 @@ function HelpPanel() {
   return (
     <div className="h-full w-full bg-white flex flex-col">
       {/* Header */}
-      <div className="px-6 py-6 border-b border-gray-100">
-        <h3 className="text-xl font-semibold text-gray-900">Help & Support</h3>
+      <div className="px-4 py-4 border-b border-gray-100">
+        <h3 className="text-lg font-semibold text-gray-900">Help & Support</h3>
       </div>
       
-      <div className="overflow-y-auto flex-1 px-6 py-8 space-y-8">
+      <div className="overflow-y-auto flex-1 px-4 py-4 space-y-5">
         {/* FAQs */}
         <div>
-          <h4 className="text-sm font-medium text-gray-400 uppercase tracking-wide mb-4">Common Questions</h4>
-          <div className="space-y-4">
+          <h4 className="text-[10px] font-medium text-gray-400 uppercase tracking-wide mb-2.5">Common Questions</h4>
+          <div className="space-y-2.5">
             {faqs.map((faq, index) => (
-              <div key={index} className="border-b border-gray-100 pb-4 last:border-0">
-                <p className="text-sm font-medium text-gray-900 mb-2">{faq.question}</p>
-                <p className="text-sm text-gray-600 leading-relaxed">{faq.answer}</p>
+              <div key={index} className="border-b border-gray-100 pb-2.5 last:border-0">
+                <p className="text-xs font-medium text-gray-900 mb-1.5">{faq.question}</p>
+                <p className="text-xs text-gray-600 leading-relaxed">{faq.answer}</p>
               </div>
             ))}
           </div>
@@ -47,20 +47,20 @@ function HelpPanel() {
 
         {/* Contact */}
         <div>
-          <h4 className="text-sm font-medium text-gray-400 uppercase tracking-wide mb-4">Get in Touch</h4>
-          <div className="space-y-3">
+          <h4 className="text-[10px] font-medium text-gray-400 uppercase tracking-wide mb-2.5">Get in Touch</h4>
+          <div className="space-y-2">
             <a 
               href="mailto:support@embraze.app" 
-              className="flex items-center gap-3 text-sm text-gray-700 hover:text-gray-900 transition-colors"
+              className="flex items-center gap-2 text-xs text-gray-700 hover:text-gray-900 transition-colors"
             >
-              <ChatBubbleLeftRightIcon className="w-4 h-4 text-gray-400" />
+              <ChatBubbleLeftRightIcon className="w-3.5 h-3.5 text-gray-400" />
               <span>support@embraze.app</span>
             </a>
             <a 
               href="mailto:bugs@embraze.app" 
-              className="flex items-center gap-3 text-sm text-gray-700 hover:text-gray-900 transition-colors"
+              className="flex items-center gap-2 text-xs text-gray-700 hover:text-gray-900 transition-colors"
             >
-              <QuestionMarkCircleIcon className="w-4 h-4 text-gray-400" />
+              <QuestionMarkCircleIcon className="w-3.5 h-3.5 text-gray-400" />
               <span>Report an issue</span>
             </a>
           </div>
@@ -68,20 +68,20 @@ function HelpPanel() {
 
         {/* Legal */}
         <div>
-          <h4 className="text-sm font-medium text-gray-400 uppercase tracking-wide mb-4">Legal</h4>
-          <div className="space-y-3">
-            <a href="#" className="block text-sm text-gray-700 hover:text-gray-900 transition-colors">
+          <h4 className="text-[10px] font-medium text-gray-400 uppercase tracking-wide mb-2.5">Legal</h4>
+          <div className="space-y-2">
+            <a href="#" className="block text-xs text-gray-700 hover:text-gray-900 transition-colors">
               Privacy Policy
             </a>
-            <a href="#" className="block text-sm text-gray-700 hover:text-gray-900 transition-colors">
+            <a href="#" className="block text-xs text-gray-700 hover:text-gray-900 transition-colors">
               Terms of Service
             </a>
           </div>
         </div>
 
         {/* Version */}
-        <div className="pt-8 border-t border-gray-100">
-          <p className="text-xs text-gray-400 text-center">Embraze v1.0.0</p>
+        <div className="pt-4 border-t border-gray-100">
+          <p className="text-[10px] text-gray-400 text-center">Embraze v1.0.0</p>
         </div>
       </div>
     </div>

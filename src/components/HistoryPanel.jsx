@@ -44,22 +44,22 @@ function HistoryPanel({ history, onClearHistory, onClearItem, userProfile }) {
     return (
       <div className="h-full w-full bg-gradient-to-br from-gray-50 to-white flex flex-col">
         {/* Header */}
-        <div className="px-6 py-6 border-b border-gray-200/50">
-          <h3 className="text-xl font-semibold text-gray-900">History</h3>
+        <div className="px-4 py-4 border-b border-gray-200/50">
+          <h3 className="text-lg font-semibold text-gray-900">History</h3>
         </div>
         
         {/* Empty State */}
-        <div className="flex-1 flex flex-col items-center justify-center px-6 py-8">
-          <div className="w-32 h-32 mb-3">
+        <div className="flex-1 flex flex-col items-center justify-center px-4 py-4">
+          <div className="w-24 h-24 mb-2">
             <Player
               autoplay
               loop
               src={emptyAnimation}
-              style={{ height: '128px', width: '128px' }}
+              style={{ height: '96px', width: '96px' }}
             />
           </div>
-          <p className="text-gray-500 text-center text-sm font-semibold mb-1">No history yet</p>
-          <p className="text-gray-400 text-center text-xs">Past emergency alerts will appear here</p>
+          <p className="text-gray-500 text-center text-xs font-semibold mb-0.5">No history yet</p>
+          <p className="text-gray-400 text-center text-[10px]">Past emergency alerts will appear here</p>
         </div>
       </div>
     );
@@ -68,41 +68,41 @@ function HistoryPanel({ history, onClearHistory, onClearItem, userProfile }) {
   return (
     <div className="h-full w-full bg-gradient-to-br from-gray-50 to-white flex flex-col">
       {/* Header with Filter and Clear All */}
-      <div className="flex items-center justify-between px-6 py-6 border-b border-gray-200/50 bg-white/80 backdrop-blur-sm">
+      <div className="flex items-center justify-between px-4 py-4 border-b border-gray-200/50 bg-white/80 backdrop-blur-sm">
         <div>
-          <h3 className="text-lg font-bold text-gray-900">History</h3>
-          <p className="text-xs text-gray-500">
+          <h3 className="text-base font-bold text-gray-900">History</h3>
+          <p className="text-[10px] text-gray-500">
             {filteredHistory.length} alert{filteredHistory.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           {/* Filter Button */}
           <div className="relative">
             <button
               onClick={() => setShowFilterMenu(!showFilterMenu)}
-              className="text-sm text-gray-600 hover:text-gray-800 font-semibold transition-colors px-3 py-2 hover:bg-gray-100 rounded-lg cursor-pointer flex items-center gap-1.5"
+              className="text-xs text-gray-600 hover:text-gray-800 font-semibold transition-colors px-2 py-1.5 hover:bg-gray-100 rounded-lg cursor-pointer flex items-center gap-1"
             >
-              <FunnelIcon className="w-4 h-4" />
+              <FunnelIcon className="w-3 h-3" />
               {filter === 'all' ? 'All' : filter === 'mine' ? 'Mine' : 'Family'}
             </button>
             
             {showFilterMenu && (
-              <div className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10 min-w-[100px]">
+              <div className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10 min-w-[90px]">
                 <button
                   onClick={() => { setFilter('all'); setShowFilterMenu(false); }}
-                  className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${filter === 'all' ? 'text-blue-600 font-semibold' : 'text-gray-700'}`}
+                  className={`w-full text-left px-2.5 py-1.5 text-xs hover:bg-gray-50 ${filter === 'all' ? 'text-blue-600 font-semibold' : 'text-gray-700'}`}
                 >
                   All
                 </button>
                 <button
                   onClick={() => { setFilter('mine'); setShowFilterMenu(false); }}
-                  className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${filter === 'mine' ? 'text-blue-600 font-semibold' : 'text-gray-700'}`}
+                  className={`w-full text-left px-2.5 py-1.5 text-xs hover:bg-gray-50 ${filter === 'mine' ? 'text-blue-600 font-semibold' : 'text-gray-700'}`}
                 >
                   Mine
                 </button>
                 <button
                   onClick={() => { setFilter('family'); setShowFilterMenu(false); }}
-                  className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${filter === 'family' ? 'text-blue-600 font-semibold' : 'text-gray-700'}`}
+                  className={`w-full text-left px-2.5 py-1.5 text-xs hover:bg-gray-50 ${filter === 'family' ? 'text-blue-600 font-semibold' : 'text-gray-700'}`}
                 >
                   Family
                 </button>
@@ -113,26 +113,26 @@ function HistoryPanel({ history, onClearHistory, onClearItem, userProfile }) {
           {/* Clear All Button */}
           <button
             onClick={onClearHistory}
-            className="text-sm text-red-600 hover:text-red-700 font-semibold transition-colors px-3 py-2 hover:bg-red-50 rounded-lg cursor-pointer"
+            className="text-xs text-red-600 hover:text-red-700 font-semibold transition-colors px-2 py-1.5 hover:bg-red-50 rounded-lg cursor-pointer"
           >
             Clear All
           </button>
         </div>
       </div>
       
-      <div className="overflow-y-auto flex-1 px-6 py-8 space-y-4">
+      <div className="overflow-y-auto flex-1 px-4 py-4 space-y-2.5">
         {filteredHistory.map((item) => {
           const isUserAlert = item.userId === userProfile?.id;
           
           return (
             <div 
               key={item.id} 
-              className="bg-white rounded-xl p-5 shadow-sm hover:shadow-md transition-all border border-gray-100"
+              className="bg-white rounded-xl p-3 shadow-sm hover:shadow-md transition-all border border-gray-100"
             >
               {/* Header */}
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className={`w-11 h-11 rounded-full flex items-center justify-center overflow-hidden ${
+              <div className="flex items-center justify-between mb-2.5">
+                <div className="flex items-center gap-2.5">
+                  <div className={`w-9 h-9 rounded-full flex items-center justify-center overflow-hidden ${
                     isUserAlert ? 'bg-blue-500' : 'bg-purple-500'
                   }`}>
                     {item.photoUrl ? (
@@ -142,17 +142,17 @@ function HistoryPanel({ history, onClearHistory, onClearItem, userProfile }) {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <span className="text-white font-semibold text-base">
+                      <span className="text-white font-semibold text-sm">
                         {item.userName.charAt(0)}
                       </span>
                     )}
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 text-sm leading-tight">
+                    <h3 className="font-semibold text-gray-900 text-xs leading-tight">
                       {item.userName}
-                      {isUserAlert && <span className="text-gray-400 text-xs ml-1">(You)</span>}
+                      {isUserAlert && <span className="text-gray-400 text-[10px] ml-1">(You)</span>}
                     </h3>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-[10px] text-gray-500 mt-0.5">
                       {formatDate(item.createdAt)}
                     </p>
                   </div>
@@ -161,28 +161,28 @@ function HistoryPanel({ history, onClearHistory, onClearItem, userProfile }) {
                   onClick={() => onClearItem(item.id)}
                   className="text-gray-400 hover:text-red-600 transition-colors p-1 hover:bg-red-50 rounded-full cursor-pointer"
                 >
-                  <XMarkIcon className="w-4 h-4" />
+                  <XMarkIcon className="w-3.5 h-3.5" />
                 </button>
               </div>
 
               {/* Location */}
-              <div className="mb-4">
-                <div className="flex items-start gap-2.5 text-sm">
-                  <FontAwesomeIcon icon={faLocationDot} className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+              <div className="mb-2.5">
+                <div className="flex items-start gap-2 text-xs">
+                  <FontAwesomeIcon icon={faLocationDot} className="w-3 h-3 text-gray-400 mt-0.5 flex-shrink-0" />
                   <span className="text-gray-600 leading-relaxed">{item.address}</span>
                 </div>
               </div>
 
               {/* Time Info */}
-              <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                <div className="flex items-center gap-2">
-                  <ClockIcon className="w-4 h-4 text-gray-400" />
-                  <span className="text-xs text-gray-500">
+              <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                <div className="flex items-center gap-1.5">
+                  <ClockIcon className="w-3 h-3 text-gray-400" />
+                  <span className="text-[10px] text-gray-500">
                     {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </div>
                 {item.stoppedAt && (
-                  <span className="text-xs text-gray-500">
+                  <span className="text-[10px] text-gray-500">
                     Duration: {formatDuration(item.createdAt, item.stoppedAt)}
                   </span>
                 )}
