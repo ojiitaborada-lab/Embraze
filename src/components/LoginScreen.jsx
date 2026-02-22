@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { HandRaisedIcon } from '@heroicons/react/24/outline';
 import { Player } from '@lottiefiles/react-lottie-player';
 import Toast from './Toast';
+import PrivacyPolicy from './PrivacyPolicy';
+import TermsOfService from './TermsOfService';
+import HelpPanel from './HelpPanel';
 import { sendMagicLink } from '../supabase/auth';
 import cityAnimation from '../assets/City City pixel.json';
 
@@ -9,6 +11,9 @@ function LoginScreen({ onSignIn, showLogoutMessage }) {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
+  const [showTermsOfService, setShowTermsOfService] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
 
   const handleMagicLinkSignIn = async (e) => {
     e.preventDefault();
@@ -58,6 +63,88 @@ function LoginScreen({ onSignIn, showLogoutMessage }) {
               style={{ height: '100%', width: '100%', objectFit: 'cover' }}
             />
           </div>
+          
+          {/* Hero Content Overlay */}
+          <div className="absolute inset-0 flex flex-col justify-between p-12 bg-black/40">
+            {/* Main Content - Centered */}
+            <div className="flex-1 flex items-center justify-center">
+              <div className="max-w-lg space-y-8">
+                <div className="space-y-4">
+                  <h1 className="text-5xl font-bold text-white drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)] leading-tight">
+                    Help each other while help is on the way
+                  </h1>
+                  <p className="text-lg text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
+                    Community-driven emergency response system
+                  </p>
+                </div>
+                
+                {/* Feature Checklist */}
+                <div className="space-y-4">
+                  <div className="flex items-start gap-4">
+                    <div className="w-7 h-7 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
+                        Alert nearby community members
+                      </h3>
+                      <p className="text-sm text-white/90 drop-shadow-[0_2px_6px_rgba(0,0,0,0.8)] mt-1">
+                        Notify your family and neighbors instantly during emergencies
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-4">
+                    <div className="w-7 h-7 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
+                        Real-time location sharing
+                      </h3>
+                      <p className="text-sm text-white/90 drop-shadow-[0_2px_6px_rgba(0,0,0,0.8)] mt-1">
+                        Share your exact location so help can find you quickly
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-4">
+                    <div className="w-7 h-7 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
+                        Free and open source
+                      </h3>
+                      <p className="text-sm text-white/90 drop-shadow-[0_2px_6px_rgba(0,0,0,0.8)] mt-1">
+                        Built for communities, by communities. Always free to use
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Footer Links */}
+            <div className="flex items-center justify-between text-white/80 text-sm drop-shadow-[0_2px_6px_rgba(0,0,0,0.8)]">
+              <div className="flex items-center gap-4">
+                <button onClick={() => setShowPrivacyPolicy(true)} className="hover:text-white transition-colors cursor-pointer">Privacy Policy</button>
+                <span className="text-white/40">•</span>
+                <button onClick={() => setShowTermsOfService(true)} className="hover:text-white transition-colors cursor-pointer">Terms of Service</button>
+                <span className="text-white/40">•</span>
+                <button onClick={() => setShowHelp(true)} className="hover:text-white transition-colors cursor-pointer">Help</button>
+              </div>
+              <a href="mailto:support@embraze.app" className="hover:text-white transition-colors">
+                support@embraze.app
+              </a>
+            </div>
+          </div>
         </div>
 
         {/* Right Side - Sign In Form */}
@@ -67,7 +154,7 @@ function LoginScreen({ onSignIn, showLogoutMessage }) {
             <div className="text-center mb-8">
               <h1 className="text-2xl font-semibold text-gray-900 mb-2">Sign in to Embraze</h1>
               <p className="text-sm text-gray-500">
-                Access your emergency network
+                Join your community support network
               </p>
             </div>
 
@@ -130,7 +217,7 @@ function LoginScreen({ onSignIn, showLogoutMessage }) {
 
             {/* Footer */}
             <p className="text-gray-400 text-xs text-center">
-              By signing in, you agree to our <span className="text-gray-600 hover:text-gray-900 cursor-pointer underline">Terms</span> and <span className="text-gray-600 hover:text-gray-900 cursor-pointer underline">Privacy Policy</span>
+              By signing in, you agree to our <button onClick={() => setShowTermsOfService(true)} className="text-gray-600 hover:text-gray-900 cursor-pointer underline">Terms</button> and <button onClick={() => setShowPrivacyPolicy(true)} className="text-gray-600 hover:text-gray-900 cursor-pointer underline">Privacy Policy</button>
             </p>
 
             {/* Open Source Notice */}
@@ -142,7 +229,7 @@ function LoginScreen({ onSignIn, showLogoutMessage }) {
       </div>
 
       {/* Mobile Layout - Bottom Sheet */}
-      <div className="lg:hidden h-full relative bg-white">
+      <div className="lg:hidden h-full relative bg-white overflow-y-auto">
         {/* Lottie Animation Background - Full Cover */}
         <div className="absolute inset-0">
           <Player
@@ -153,8 +240,47 @@ function LoginScreen({ onSignIn, showLogoutMessage }) {
           />
         </div>
 
+        {/* Hero Content - Top Section */}
+        <div className="relative min-h-[40vh] flex items-end pb-6 px-6 bg-gradient-to-b from-black/30 to-black/50">
+          <div className="space-y-4 w-full">
+            <div className="space-y-2">
+              <h1 className="text-2xl font-bold text-white drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)] leading-tight">
+                Help each other while help is on the way
+              </h1>
+              <p className="text-sm text-white/90 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
+                Community-driven emergency response
+              </p>
+            </div>
+            
+            {/* Compact Feature List */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2.5">
+                <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <p className="text-sm font-semibold text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
+                  Alert nearby community members
+                </p>
+              </div>
+              
+              <div className="flex items-center gap-2.5">
+                <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <p className="text-sm font-semibold text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
+                  Real-time location sharing
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Bottom Sheet */}
-        <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl p-6 pb-8 max-h-[70vh] overflow-y-auto">
+        <div className="relative bg-white rounded-t-3xl shadow-2xl p-6 pb-8">
           {/* Handle Bar */}
           <div className="w-12 h-1 bg-slate-300 rounded-full mx-auto mb-6"></div>
 
@@ -162,7 +288,7 @@ function LoginScreen({ onSignIn, showLogoutMessage }) {
           <div className="text-center mb-6">
             <h1 className="text-xl font-semibold text-gray-900 mb-1">Sign in to Embraze</h1>
             <p className="text-xs text-gray-500">
-              Access your emergency network
+              Join your community support network
             </p>
           </div>
 
@@ -225,15 +351,27 @@ function LoginScreen({ onSignIn, showLogoutMessage }) {
 
           {/* Footer */}
           <p className="text-gray-400 text-[10px] text-center">
-            By signing in, you agree to our <span className="text-gray-600">Terms</span> and <span className="text-gray-600">Privacy Policy</span>
+            By signing in, you agree to our <button onClick={() => setShowTermsOfService(true)} className="text-gray-600 hover:text-gray-900 cursor-pointer underline">Terms</button> and <button onClick={() => setShowPrivacyPolicy(true)} className="text-gray-600 hover:text-gray-900 cursor-pointer underline">Privacy Policy</button>
           </p>
 
+          {/* Footer Links */}
+          <div className="flex items-center justify-center gap-2 text-gray-400 text-[10px] mt-4">
+            <button onClick={() => setShowHelp(true)} className="hover:text-gray-900 cursor-pointer">Help</button>
+            <span className="text-gray-300">•</span>
+            <a href="mailto:support@embraze.app" className="hover:text-gray-900">Support</a>
+          </div>
+
           {/* Open Source Notice */}
-          <p className="text-gray-400 text-[10px] text-center mt-3">
+          <p className="text-gray-400 text-[10px] text-center mt-2">
             Open source emergency alert system
           </p>
         </div>
       </div>
+
+      {/* Modals */}
+      {showPrivacyPolicy && <PrivacyPolicy onClose={() => setShowPrivacyPolicy(false)} />}
+      {showTermsOfService && <TermsOfService onClose={() => setShowTermsOfService(false)} />}
+      {showHelp && <HelpPanel onClose={() => setShowHelp(false)} />}
     </div>
   );
 }

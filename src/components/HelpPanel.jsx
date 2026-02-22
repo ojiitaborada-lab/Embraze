@@ -1,13 +1,14 @@
 import { 
   QuestionMarkCircleIcon,
   DocumentTextIcon,
-  ChatBubbleLeftRightIcon
+  ChatBubbleLeftRightIcon,
+  XMarkIcon
 } from '@heroicons/react/24/solid';
 import { useState } from 'react';
 import PrivacyPolicy from './PrivacyPolicy';
 import TermsOfService from './TermsOfService';
 
-function HelpPanel() {
+function HelpPanel({ onClose }) {
   const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
   const [showTermsOfService, setShowTermsOfService] = useState(false);
 
@@ -62,6 +63,127 @@ function HelpPanel() {
     }
   ];
 
+  // If used as a modal (has onClose prop), render as modal
+  if (onClose) {
+    return (
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-3">
+        <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 bg-slate-50">
+            <div>
+              <h2 className="text-base font-bold text-gray-900 tracking-tight">Help & Support</h2>
+              <p className="text-[9px] text-gray-600 font-medium mt-0.5">We're here to help</p>
+            </div>
+            <button
+              onClick={onClose}
+              className="w-7 h-7 rounded-full hover:bg-gray-100 flex items-center justify-center transition-all cursor-pointer"
+            >
+              <XMarkIcon className="w-4 h-4 text-gray-500 hover:text-gray-700" />
+            </button>
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+            <div className="text-xs text-gray-600 leading-relaxed">
+              {/* FAQs */}
+              <div>
+                <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2">Common Questions</h4>
+                <div className="space-y-2">
+                  {faqs.map((faq, index) => (
+                    <div key={index} className="bg-white rounded-lg p-3 shadow-sm border border-gray-100/50 hover:shadow-md hover:border-blue-100 transition-all">
+                      <p className="text-xs font-bold text-gray-900 mb-1.5 tracking-tight">{faq.question}</p>
+                      <p className="text-xs text-gray-600 leading-relaxed">{faq.answer}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Contact */}
+              <div className="mt-4">
+                <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2">Get in Touch</h4>
+                <div className="space-y-2">
+                  <a 
+                    href="mailto:support@embraze.app" 
+                    className="flex items-center gap-3 text-xs text-gray-700 hover:text-blue-600 transition-all bg-white rounded-lg p-3 shadow-sm border border-slate-100 hover:shadow-md hover:border-blue-100 cursor-pointer"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0 shadow-sm">
+                      <ChatBubbleLeftRightIcon className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-900 text-xs">Email Support</p>
+                      <p className="text-[10px] text-gray-600">support@embraze.app</p>
+                    </div>
+                  </a>
+                  <a 
+                    href="mailto:bugs@embraze.app" 
+                    className="flex items-center gap-3 text-xs text-gray-700 hover:text-blue-600 transition-all bg-white rounded-lg p-3 shadow-sm border border-slate-100 hover:shadow-md hover:border-blue-100 cursor-pointer"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center flex-shrink-0 shadow-sm">
+                      <QuestionMarkCircleIcon className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-900 text-xs">Report an Issue</p>
+                      <p className="text-[10px] text-gray-600">bugs@embraze.app</p>
+                    </div>
+                  </a>
+                </div>
+              </div>
+
+              {/* Legal */}
+              <div className="mt-4">
+                <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2">Legal</h4>
+                <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-100/50 space-y-2">
+                  <button 
+                    onClick={() => setShowPrivacyPolicy(true)}
+                    className="flex items-center justify-between text-xs text-gray-700 hover:text-blue-600 transition-colors py-2 cursor-pointer w-full"
+                  >
+                    <span className="font-medium">Privacy Policy</span>
+                    <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                  <div className="border-t border-gray-100" />
+                  <button 
+                    onClick={() => setShowTermsOfService(true)}
+                    className="flex items-center justify-between text-xs text-gray-700 hover:text-blue-600 transition-colors py-2 cursor-pointer w-full"
+                  >
+                    <span className="font-medium">Terms of Service</span>
+                    <svg className="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              {/* Version */}
+              <div className="mt-4">
+                <div className="bg-slate-50 rounded-lg p-3 text-center border border-slate-200">
+                  <p className="text-[10px] text-gray-600 font-semibold">Embraze v1.0.0</p>
+                  <p className="text-[9px] text-gray-500 mt-0.5">Your safety network</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="px-4 py-3 border-t border-gray-100 bg-gray-50/50">
+            <button
+              onClick={onClose}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-full font-bold transition-all text-xs cursor-pointer shadow-sm active:scale-95"
+            >
+              Close
+            </button>
+          </div>
+
+          {/* Nested Modals */}
+          {showPrivacyPolicy && <PrivacyPolicy onClose={() => setShowPrivacyPolicy(false)} />}
+          {showTermsOfService && <TermsOfService onClose={() => setShowTermsOfService(false)} />}
+        </div>
+      </div>
+    );
+  }
+
+  // Otherwise, render as a panel (original behavior)
   return (
     <div className="h-full w-full bg-white flex flex-col">
       {/* Header */}

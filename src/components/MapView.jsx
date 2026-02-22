@@ -13,14 +13,14 @@ import {
   MicrophoneIcon
 } from '@heroicons/react/24/solid';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faRoute, faLocationCrosshairs, faLocationDot, faCarBurst, faHandshake, faCircleInfo } from '@fortawesome/free-solid-svg-icons';
+import { faRoute, faLocationCrosshairs, faLocationDot, faCarBurst, faHandshake, faCircleInfo, faCompass } from '@fortawesome/free-solid-svg-icons';
 import { Player } from '@lottiefiles/react-lottie-player';
 import Toast from './Toast';
 import Tooltip from './Tooltip';
 import EmergencyNotesModal from './EmergencyNotesModal';
 import AlertDetailsModal from './AlertDetailsModal';
 import { createOrUpdateEmergencyAlert, stopEmergencyAlert } from '../firebase/services';
-import loadingAnimation from '../../public/Loading.json';
+import loadingAnimation from '../assets/Trail loading.json';
 import embrazeLogo from '../assets/embraze_logo.json';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
@@ -43,10 +43,16 @@ const MapView = forwardRef(({ onNewHelpRequest, allHelpPings, userProfile, helpA
   
   // Cooldown state
   const [cooldownEnd, setCooldownEnd] = useState(() => {
-    // Load cooldown from localStorage
-    const stored = localStorage.getItem(`helpCooldown_${userProfile?.id}`);
-    return stored ? parseInt(stored) : null;
+    // Load cooldown from user profile (will be set when profile loads)
+    return userProfile?.cooldownEnd || null;
   });
+  
+  // Update cooldown when user profile changes
+  useEffect(() => {
+    if (userProfile?.cooldownEnd) {
+      setCooldownEnd(userProfile.cooldownEnd);
+    }
+  }, [userProfile?.cooldownEnd]);
   const [cooldownTimeLeft, setCooldownTimeLeft] = useState(0);
   
   // Long press states for help button
@@ -219,16 +225,26 @@ const MapView = forwardRef(({ onNewHelpRequest, allHelpPings, userProfile, helpA
       const remaining = Math.max(0, Math.ceil((cooldownEnd - now) / 1000));
       setCooldownTimeLeft(remaining);
       
+      // Format time for display
+      const minutes = Math.floor(remaining / 60);
+      const seconds = remaining % 60;
+      const formattedTime = remaining > 0 ? `${minutes}:${seconds.toString().padStart(2, '0')}` : null;
+      
       if (onCooldownChange) {
         onCooldownChange({ 
           isOnCooldown: remaining > 0, 
-          timeLeft: remaining > 0 ? formatCooldownTime() : null 
+          timeLeft: formattedTime
         });
       }
       
       if (remaining === 0) {
         setCooldownEnd(null);
-        localStorage.removeItem(`helpCooldown_${userProfile?.id}`);
+        // Remove cooldown from Firestore
+        if (userProfile?.id) {
+          import('../firebase/services').then(({ updateUserCooldown }) => {
+            updateUserCooldown(userProfile.id, null);
+          });
+        }
       }
     };
     
@@ -380,6 +396,21 @@ const MapView = forwardRef(({ onNewHelpRequest, allHelpPings, userProfile, helpA
         center: [userLocation.longitude, userLocation.latitude],
         zoom: 16,
         pitch: 60,
+        duration: 1500, // 1.5 seconds smooth animation
+        essential: true
+      });
+    }
+  };
+
+  // Handle reset camera angle button
+  const handleResetCamera = () => {
+    if (mapRef.current) {
+      // Reset to initial view
+      mapRef.current.flyTo({
+        center: [123.8854, 10.3157],
+        zoom: 13,
+        pitch: 60,
+        bearing: 0,
         duration: 1500, // 1.5 seconds smooth animation
         essential: true
       });
@@ -574,7 +605,12 @@ const MapView = forwardRef(({ onNewHelpRequest, allHelpPings, userProfile, helpA
       // Start 25-minute cooldown immediately when alert is created
       const cooldownEndTime = Date.now() + (25 * 60 * 1000); // 25 minutes
       setCooldownEnd(cooldownEndTime);
-      localStorage.setItem(`helpCooldown_${userProfile?.id}`, cooldownEndTime.toString());
+      
+      // Save cooldown to Firestore
+      if (userProfile?.id) {
+        const { updateUserCooldown } = await import('../firebase/services');
+        await updateUserCooldown(userProfile.id, cooldownEndTime);
+      }
       
       // Pass emergency type and additional data to parent
       await onAskForHelp(pendingEmergencyType, { notes, photos });
@@ -747,7 +783,7 @@ const MapView = forwardRef(({ onNewHelpRequest, allHelpPings, userProfile, helpA
       {isCalculatingRoute && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-6 shadow-2xl flex flex-col items-center gap-3 w-full max-w-[220px] mx-4">
-            <div className="w-20 h-20">
+            <div className="w-24 h-24">
               <Player
                 autoplay
                 loop
@@ -1265,7 +1301,7 @@ const MapView = forwardRef(({ onNewHelpRequest, allHelpPings, userProfile, helpA
       )}
 
       {/* Find My Location Button - Visible on all devices at top right */}
-      <div className="absolute top-4 right-4 md:right-[80px] z-10">
+      <div className="absolute top-4 right-4 md:right-[80px] z-10 flex flex-col gap-2">
         <Tooltip text="Find My Location" position="left">
           <button 
             onClick={handleFindMyLocation}
@@ -1275,10 +1311,26 @@ const MapView = forwardRef(({ onNewHelpRequest, allHelpPings, userProfile, helpA
             <FontAwesomeIcon icon={faLocationCrosshairs} className="w-5 h-5 text-gray-700 group-hover:text-blue-600 transition-colors" />
           </button>
         </Tooltip>
+        
+        <Tooltip text="Reset Camera View" position="left">
+          <button 
+            onClick={handleResetCamera}
+            className="w-11 h-11 bg-white backdrop-blur-md rounded-full shadow-lg hover:shadow-xl transition-all hover:scale-110 active:scale-95 group cursor-pointer border border-blue-100/50 flex items-center justify-center"
+          >
+            <FontAwesomeIcon 
+              icon={faCompass} 
+              className="w-5 h-5 text-gray-700 group-hover:text-blue-600 transition-colors" 
+              style={{ 
+                transform: `rotate(${-viewState.bearing}deg)`,
+                transition: 'transform 0.1s ease-out'
+              }}
+            />
+          </button>
+        </Tooltip>
       </div>
       
       {/* Request Help Button - Bottom Center - Desktop Only */}
-      <div className="hidden md:flex absolute bottom-6 left-1/2 -translate-x-1/2 z-10 gap-2 items-center">
+      <div className="hidden md:block absolute bottom-6 left-1/2 -translate-x-1/2 z-10">
         {/* Emergency Type Menu - Drop-up */}
         <div className={`absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-md rounded-xl shadow-2xl border border-gray-200 p-1.5 min-w-[180px] transition-all duration-300 ease-out ${
           showEmergencyMenu && !isOnCooldown
@@ -1426,11 +1478,13 @@ const MapView = forwardRef(({ onNewHelpRequest, allHelpPings, userProfile, helpA
             )}
           </div>
         </button>
-        
-        {/* Voice Recognition Button - Desktop */}
+      </div>
+
+      {/* Voice Recognition Button - Desktop - Right Side */}
+      <div className="hidden md:block absolute bottom-6 right-20 z-10">
         <button
           onClick={toggleVoiceRecognition}
-          className={`ml-2 w-12 h-12 rounded-full font-bold shadow-lg transition-all duration-300 ease-out flex items-center justify-center ${
+          className={`w-12 h-12 rounded-full font-bold shadow-lg transition-all duration-300 ease-out flex items-center justify-center ${
             isListening
               ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse'
               : 'bg-white/95 backdrop-blur-md hover:bg-white text-gray-700 border border-gray-200 hover:shadow-xl hover:scale-105 active:scale-95'

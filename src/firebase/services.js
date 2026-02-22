@@ -73,6 +73,20 @@ export const getUserProfile = async (userId) => {
   }
 };
 
+// Update user cooldown
+export const updateUserCooldown = async (userId, cooldownEndTime) => {
+  try {
+    await updateDoc(doc(db, 'users', userId), {
+      cooldownEnd: cooldownEndTime,
+      updatedAt: serverTimestamp()
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating cooldown:', error);
+    return { success: false, error: error.message };
+  }
+};
+
 // Emergency Alert Services
 // NOTE: Photos are currently stored as base64 in Firestore (MVP)
 // TODO: For production, upload photos to Firebase Storage and store URLs

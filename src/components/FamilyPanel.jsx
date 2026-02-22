@@ -14,7 +14,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPeopleGroup, faRightToBracket } from '@fortawesome/free-solid-svg-icons';
 import { Player } from '@lottiefiles/react-lottie-player';
 import emptyGhostAnimation from '../assets/empty ghost.json';
-import loadingAnimation from '../../public/Loading.json';
+import loadingAnimation from '../assets/Trail loading.json';
 
 function FamilyPanel({ isOpen, onClose, userProfile, familyMembers = [], familyName = '', onCreateFamily, onJoinFamily, onLeaveFamily, onRemoveMember, isCreator, onViewMemberLocation, onCreateInviteCode }) {
   const [showJoinInput, setShowJoinInput] = useState(false);
@@ -156,7 +156,7 @@ function FamilyPanel({ isOpen, onClose, userProfile, familyMembers = [], familyN
       {(isCreating || isJoining) && (
         <div className="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 rounded-lg px-4">
           <div className="bg-white rounded-2xl p-6 shadow-2xl flex flex-col items-center gap-3 w-full max-w-[220px]">
-            <div className="w-20 h-20">
+            <div className="w-24 h-24">
               <Player
                 autoplay
                 loop
