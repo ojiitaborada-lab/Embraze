@@ -10,10 +10,11 @@ import {
   ClockIcon,
   FireIcon,
   HeartIcon,
-  MicrophoneIcon
+  MicrophoneIcon,
+  HandRaisedIcon
 } from '@heroicons/react/24/solid';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faRoute, faLocationCrosshairs, faLocationDot, faCarBurst, faHandshake, faCircleInfo, faCompass } from '@fortawesome/free-solid-svg-icons';
+import { faRoute, faLocationCrosshairs, faLocationDot, faCarBurst, faHandshake, faCircleInfo, faVideo } from '@fortawesome/free-solid-svg-icons';
 import { Player } from '@lottiefiles/react-lottie-player';
 import Toast from './Toast';
 import Tooltip from './Tooltip';
@@ -24,7 +25,7 @@ import loadingAnimation from '../assets/Trail loading.json';
 import embrazeLogo from '../assets/embraze_logo.json';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
-const MapView = forwardRef(({ onNewHelpRequest, allHelpPings, userProfile, helpActive, helpStopped, familyMembers = [], onAskForHelp, onStopHelp, onCooldownChange, onEmergencyMenuChange, activeSidePanel }, ref) => {
+const MapView = forwardRef(({ onNewHelpRequest, allHelpPings, userProfile, helpActive, helpStopped, familyMembers = [], onAskForHelp, onStopHelp, onCooldownChange, onEmergencyMenuChange, activeSidePanel, onVoiceListeningChange }, ref) => {
   const mapRef = useRef();
   const [userLocation, setUserLocation] = useState(null);
   const [animatedUserLocation, setAnimatedUserLocation] = useState(null); // Animated user position
@@ -82,6 +83,13 @@ const MapView = forwardRef(({ onNewHelpRequest, allHelpPings, userProfile, helpA
       onEmergencyMenuChange(showEmergencyMenu);
     }
   }, [showEmergencyMenu, onEmergencyMenuChange]);
+  
+  // Notify parent when voice listening state changes
+  useEffect(() => {
+    if (onVoiceListeningChange) {
+      onVoiceListeningChange(isListening);
+    }
+  }, [isListening, onVoiceListeningChange]);
   
   const [viewState, setViewState] = useState({
     longitude: 123.8854,
@@ -745,6 +753,8 @@ const MapView = forwardRef(({ onNewHelpRequest, allHelpPings, userProfile, helpA
         setShowEmergencyMenu(prev => !prev);
       }
     },
+    toggleVoiceRecognition: toggleVoiceRecognition,
+    getIsListening: () => isListening,
     flyToLocation: (latitude, longitude) => {
       if (mapRef.current) {
         mapRef.current.flyTo({
@@ -1300,31 +1310,58 @@ const MapView = forwardRef(({ onNewHelpRequest, allHelpPings, userProfile, helpA
         </div>
       )}
 
-      {/* Find My Location Button - Visible on all devices at top right */}
-      <div className="absolute top-4 right-4 md:right-[80px] z-10 flex flex-col gap-2">
-        <Tooltip text="Find My Location" position="left">
+      {/* Reset Camera Button - Mobile - Above Find My Location on Left */}
+      {!activeSidePanel && (
+        <div className="md:hidden absolute bottom-[156px] left-4 z-10">
+          <button 
+            onClick={handleResetCamera}
+            className="w-11 h-11 bg-white backdrop-blur-md rounded-full shadow-lg transition-all active:scale-95 border border-blue-100/50 flex items-center justify-center"
+          >
+            <FontAwesomeIcon 
+              icon={faVideo} 
+              className="w-5 h-5 text-gray-700" 
+            />
+          </button>
+        </div>
+      )}
+
+      {/* Find My Location Button - Mobile - Below Reset Camera on Left */}
+      {!activeSidePanel && (
+        <div className="md:hidden absolute bottom-[100px] left-4 z-10">
           <button 
             onClick={handleFindMyLocation}
-            className="w-11 h-11 bg-white backdrop-blur-md rounded-full shadow-lg hover:shadow-xl transition-all disabled:opacity-50 hover:scale-110 active:scale-95 group cursor-pointer border border-blue-100/50 flex items-center justify-center"
+            className="w-11 h-11 bg-white backdrop-blur-md rounded-full shadow-lg transition-all disabled:opacity-50 active:scale-95 border border-blue-100/50 flex items-center justify-center"
+            disabled={!userLocation}
+          >
+            <FontAwesomeIcon icon={faLocationCrosshairs} className="w-5 h-5 text-gray-700" />
+          </button>
+        </div>
+      )}
+
+      {/* Reset Camera Button - Desktop - Above Find My Location */}
+      <div className="hidden md:block absolute bottom-[84px] left-6 z-10">
+        <Tooltip text="Reset Camera View" position="right">
+          <button 
+            onClick={handleResetCamera}
+            className="w-12 h-12 bg-white backdrop-blur-md rounded-full shadow-lg hover:shadow-xl transition-all hover:scale-110 active:scale-95 group cursor-pointer border border-blue-100/50 flex items-center justify-center"
+          >
+            <FontAwesomeIcon 
+              icon={faVideo} 
+              className="w-5 h-5 text-gray-700 group-hover:text-blue-600 transition-colors" 
+            />
+          </button>
+        </Tooltip>
+      </div>
+
+      {/* Find My Location Button - Desktop - Bottom Left */}
+      <div className="hidden md:block absolute bottom-6 left-6 z-10">
+        <Tooltip text="Find My Location" position="right">
+          <button 
+            onClick={handleFindMyLocation}
+            className="w-12 h-12 bg-white backdrop-blur-md rounded-full shadow-lg hover:shadow-xl transition-all disabled:opacity-50 hover:scale-110 active:scale-95 group cursor-pointer border border-blue-100/50 flex items-center justify-center"
             disabled={!userLocation}
           >
             <FontAwesomeIcon icon={faLocationCrosshairs} className="w-5 h-5 text-gray-700 group-hover:text-blue-600 transition-colors" />
-          </button>
-        </Tooltip>
-        
-        <Tooltip text="Reset Camera View" position="left">
-          <button 
-            onClick={handleResetCamera}
-            className="w-11 h-11 bg-white backdrop-blur-md rounded-full shadow-lg hover:shadow-xl transition-all hover:scale-110 active:scale-95 group cursor-pointer border border-blue-100/50 flex items-center justify-center"
-          >
-            <FontAwesomeIcon 
-              icon={faCompass} 
-              className="w-5 h-5 text-gray-700 group-hover:text-blue-600 transition-colors" 
-              style={{ 
-                transform: `rotate(${-viewState.bearing}deg)`,
-                transition: 'transform 0.1s ease-out'
-              }}
-            />
           </button>
         </Tooltip>
       </div>
@@ -1443,57 +1480,45 @@ const MapView = forwardRef(({ onNewHelpRequest, allHelpPings, userProfile, helpA
           </div>
         </div>
         
-        {/* Main Button */}
-        <button
-          onClick={() => {
-            if (!isOnCooldown) {
-              setShowEmergencyMenu(!showEmergencyMenu);
-            }
-          }}
-          className={`relative overflow-hidden rounded-full font-bold text-sm shadow-lg transition-all duration-300 ease-out ${
-            isOnCooldown
-              ? 'bg-slate-600 text-white border border-slate-500 cursor-not-allowed px-6 py-3'
-              : showEmergencyMenu
-                ? 'bg-gray-700 hover:bg-gray-800 text-white border border-gray-600 px-6 py-3'
-                : 'bg-white/95 backdrop-blur-md hover:bg-white text-gray-700 border border-gray-200 hover:shadow-xl hover:scale-105 active:scale-95 px-6 py-3'
-          }`}
-          disabled={isOnCooldown}
-        >
-          <div className="relative z-10 flex items-center gap-2 transition-all duration-300">
+        {/* Main Button - Icon with Label */}
+        <div className="flex flex-col items-center gap-1">
+          <button
+            onClick={() => {
+              if (!isOnCooldown) {
+                setShowEmergencyMenu(!showEmergencyMenu);
+              }
+            }}
+            className={`relative overflow-visible rounded-full font-bold shadow-lg transition-all duration-300 ease-out p-4 ${
+              isOnCooldown
+                ? 'bg-white text-gray-700 cursor-not-allowed'
+                : showEmergencyMenu
+                  ? 'bg-white text-gray-700 hover:bg-gray-50 hover:scale-110 active:scale-95 cursor-pointer'
+                  : 'bg-white text-gray-700 hover:bg-gray-50 hover:scale-110 active:scale-95 cursor-pointer'
+            }`}
+            disabled={isOnCooldown}
+          >
             {isOnCooldown ? (
-              <>
-                <ClockIcon className="w-5 h-5 transition-all duration-300" />
-                <span className="transition-all duration-300 tabular-nums">{formatCooldownTime()}</span>
-              </>
+              <ClockIcon className="w-6 h-6" />
             ) : showEmergencyMenu ? (
-              <>
-                <XMarkIcon className="w-5 h-5 transition-all duration-300" />
-                <span className="transition-all duration-300">Close</span>
-              </>
+              <XMarkIcon className="w-6 h-6" />
             ) : (
-              <>
-                <FontAwesomeIcon icon={faHandshake} className="w-5 h-5 transition-all duration-300 text-blue-600" />
-                <span className="transition-all duration-300">Request Help</span>
-              </>
+              <HandRaisedIcon className="w-6 h-6" />
             )}
-          </div>
-        </button>
+          </button>
+          {isOnCooldown && (
+            <span className="text-[9px] font-bold bg-slate-700 text-white px-1.5 py-0.5 rounded whitespace-nowrap">
+              {formatCooldownTime()}
+            </span>
+          )}
+          {!isOnCooldown && (
+            <span className="text-[11px] font-bold text-gray-700 bg-white px-2.5 py-0.5 rounded-full shadow-sm">
+              {showEmergencyMenu ? 'Close' : 'Ask for Help'}
+            </span>
+          )}
+        </div>
       </div>
 
-      {/* Voice Recognition Button - Desktop - Right Side */}
-      <div className="hidden md:block absolute bottom-6 right-20 z-10">
-        <button
-          onClick={toggleVoiceRecognition}
-          className={`w-12 h-12 rounded-full font-bold shadow-lg transition-all duration-300 ease-out flex items-center justify-center ${
-            isListening
-              ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse'
-              : 'bg-white/95 backdrop-blur-md hover:bg-white text-gray-700 border border-gray-200 hover:shadow-xl hover:scale-105 active:scale-95'
-          }`}
-          title={isListening ? 'Stop listening' : 'Voice command'}
-        >
-          <MicrophoneIcon className="w-5 h-5" />
-        </button>
-      </div>
+      {/* Voice Recognition Button - Desktop - Hidden (moved to side panel) */}
 
       {/* Emergency Type Menu - Mobile - Above Bottom Navigation */}
       <div className={`md:hidden fixed bottom-20 left-1/2 -translate-x-1/2 z-[75] bg-white/95 backdrop-blur-md rounded-xl shadow-2xl border border-gray-200 p-1.5 min-w-[180px] transition-all duration-300 ease-out ${

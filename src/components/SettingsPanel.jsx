@@ -311,8 +311,8 @@ function SettingsPanel({ isOpen, onClose, userProfile, onUpdateProfile, onSignOu
           {/* Notification Settings */}
           <div>
             <div className="flex items-center gap-1.5 mb-1.5">
-              <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center shadow-sm">
-                <BellIcon className="w-3 h-3 text-white" />
+              <div className="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center shadow-sm">
+                <BellIcon className="w-3 h-3 text-gray-600" />
               </div>
               <label className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">
                 Notifications
@@ -340,8 +340,8 @@ function SettingsPanel({ isOpen, onClose, userProfile, onUpdateProfile, onSignOu
           {/* Auto-share Location */}
           <div>
             <div className="flex items-center gap-1.5 mb-1.5">
-              <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center shadow-sm">
-                <MapPinIcon className="w-3 h-3 text-white" />
+              <div className="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center shadow-sm">
+                <MapPinIcon className="w-3 h-3 text-gray-600" />
               </div>
               <label className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">
                 Location
@@ -529,7 +529,7 @@ function SettingsPanel({ isOpen, onClose, userProfile, onUpdateProfile, onSignOu
           {/* Save Button */}
           <button
             onClick={handleSave}
-            className="w-full bg-white hover:bg-gray-50 text-gray-700 py-2 rounded-full font-bold transition-all text-xs cursor-pointer flex items-center justify-center gap-1.5 shadow-sm active:scale-95 border-2 border-gray-200 hover:border-gray-300"
+            className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-full font-bold transition-all text-xs cursor-pointer flex items-center justify-center gap-1.5 shadow-sm active:scale-95"
           >
             <CheckCircleIcon className="w-3.5 h-3.5" />
             Save Profile
@@ -579,14 +579,14 @@ function SettingsPanel({ isOpen, onClose, userProfile, onUpdateProfile, onSignOu
                         setShowLogoutDropdown(false);
                         handleLogout();
                       }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all text-left hover:bg-gray-50 text-gray-700 cursor-pointer"
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all text-left hover:bg-red-50 text-red-600 cursor-pointer"
                     >
-                      <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
-                        <ArrowRightOnRectangleIcon className="w-4 h-4 text-gray-600" />
+                      <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                        <ArrowRightOnRectangleIcon className="w-4 h-4 text-red-600" />
                       </div>
                       <div className="flex-1">
                         <p className="text-[10px] font-bold">Sign Out</p>
-                        <p className="text-[9px] text-gray-500">Sign in again later</p>
+                        <p className="text-[9px] text-red-500">Sign in again later</p>
                       </div>
                     </button>
                   </div>

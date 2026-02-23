@@ -8,7 +8,9 @@ import {
   XMarkIcon,
   SunIcon,
   ComputerDesktopIcon,
-  CheckCircleIcon
+  CheckCircleIcon,
+  MicrophoneIcon,
+  HandRaisedIcon
 } from '@heroicons/react/24/solid';
 import { ArrowRightStartOnRectangleIcon } from '@heroicons/react/24/outline';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -19,7 +21,7 @@ import FamilyPanel from './FamilyPanel';
 import HistoryPanel from './HistoryPanel';
 import HelpPanel from './HelpPanel';
 
-function SidePanel({ notifications, onCloseNotification, onViewLocation, onNavigate, userProfile, onUpdateProfile, helpActive: parentHelpActive, helpStopped, onSignOut, familyMembers, familyName, onCreateFamily, onJoinFamily, onLeaveFamily, onRemoveMember, onViewMemberLocation, onCreateInviteCode, showToastMessage, onClearAllNotifications, alertHistory, onClearHistory, onClearHistoryItem, onOpenHelpMenu, isHelpOnCooldown, cooldownTime, emergencyMenuOpen, onPanelChange }) {
+function SidePanel({ notifications, onCloseNotification, onViewLocation, onNavigate, userProfile, onUpdateProfile, helpActive: parentHelpActive, helpStopped, onSignOut, familyMembers, familyName, onCreateFamily, onJoinFamily, onLeaveFamily, onRemoveMember, onViewMemberLocation, onCreateInviteCode, showToastMessage, onClearAllNotifications, alertHistory, onClearHistory, onClearHistoryItem, onOpenHelpMenu, isHelpOnCooldown, cooldownTime, emergencyMenuOpen, onPanelChange, onToggleVoice, isListening }) {
   const [activePanel, setActivePanel] = useState(null); // 'notifications', 'settings', 'family', 'history', 'help'
   const [isClosing, setIsClosing] = useState(false);
   const [touchStart, setTouchStart] = useState(null);
@@ -124,71 +126,169 @@ function SidePanel({ notifications, onCloseNotification, onViewLocation, onNavig
   return (
     <>
       {/* Side Rail - Desktop: Fixed to right, Mobile: Bottom navigation */}
-      <div className="fixed right-0 top-0 w-16 h-screen bg-slate-100 shadow-lg md:flex flex-col items-center py-3 space-y-2.5 z-[70] hidden">
+      <div className="fixed right-0 top-0 w-20 h-screen bg-slate-100 shadow-lg md:flex flex-col items-center py-3 space-y-1 z-[70] hidden">
+        {/* Profile Button */}
+        <button 
+          onClick={() => setActivePanel(activePanel === 'settings' ? null : 'settings')}
+          className={`w-full flex flex-col items-center justify-center py-2 transition-all cursor-pointer ${
+            activePanel === 'settings' 
+              ? 'bg-blue-50' 
+              : 'hover:bg-slate-200'
+          }`}
+        >
+          <div className={`w-9 h-9 rounded-full overflow-hidden shadow-sm transition-all flex items-center justify-center ${
+            activePanel === 'settings' 
+              ? 'ring-2 ring-blue-500' 
+              : parentHelpActive 
+                ? 'ring-2 ring-red-500' 
+                : ''
+          }`}>
+            {userProfile.photoUrl ? (
+              <img 
+                src={userProfile.photoUrl} 
+                alt=""
+                className="w-full h-full object-cover"
+                referrerPolicy="no-referrer"
+                crossOrigin="anonymous"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                }}
+              />
+            ) : null}
+            {!userProfile.photoUrl && (
+              <div className={`w-full h-full flex items-center justify-center ${
+                parentHelpActive ? 'bg-red-500' : 'bg-blue-600'
+              }`}>
+                <span className="text-white text-xs font-bold">
+                  {userProfile.name.charAt(0)}
+                </span>
+              </div>
+            )}
+          </div>
+          <span className={`text-[9px] font-medium mt-0.5 ${
+            activePanel === 'settings' ? 'text-blue-600' : 'text-gray-600'
+          }`}>Profile</span>
+        </button>
+
         {/* Notification Bell */}
         <button 
           onClick={handleNotificationClick}
-          className={`w-11 h-11 rounded-full flex items-center justify-center transition-all relative cursor-pointer ${
+          className={`w-full flex flex-col items-center justify-center py-2 transition-all cursor-pointer relative ${
             activePanel === 'notifications' 
-              ? 'bg-blue-100 text-blue-600 shadow-sm' 
-              : 'hover:bg-blue-50 text-gray-600 hover:text-blue-600'
+              ? 'bg-blue-50' 
+              : 'hover:bg-slate-200'
           }`}
         >
-          <BellIcon className="w-5 h-5" />
-          {unreadCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] bg-red-500 text-white text-[9px] rounded-full flex items-center justify-center font-semibold px-0.5 shadow-md">
-              {unreadCount}
-            </span>
-          )}
+          <div className="relative">
+            <BellIcon className={`w-5 h-5 ${
+              activePanel === 'notifications' ? 'text-blue-600' : 'text-gray-600'
+            }`} />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] bg-red-500 text-white text-[8px] rounded-full flex items-center justify-center font-semibold px-0.5 shadow-md">
+                {unreadCount}
+              </span>
+            )}
+          </div>
+          <span className={`text-[9px] font-medium mt-0.5 ${
+            activePanel === 'notifications' ? 'text-blue-600' : 'text-gray-600'
+          }`}>Alerts</span>
         </button>
 
         {/* Family Button */}
         <button 
           onClick={() => setActivePanel(activePanel === 'family' ? null : 'family')}
-          className={`w-11 h-11 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+          className={`w-full flex flex-col items-center justify-center py-2 transition-all cursor-pointer ${
             activePanel === 'family' 
-              ? 'bg-purple-100 text-purple-600 shadow-sm' 
-              : 'hover:bg-purple-50 text-gray-600 hover:text-purple-600'
+              ? 'bg-blue-50' 
+              : 'hover:bg-slate-200'
           }`}
         >
-          <UserGroupIcon className="w-5 h-5" />
+          <UserGroupIcon className={`w-5 h-5 ${
+            activePanel === 'family' ? 'text-blue-600' : 'text-gray-600'
+          }`} />
+          <span className={`text-[9px] font-medium mt-0.5 ${
+            activePanel === 'family' ? 'text-blue-600' : 'text-gray-600'
+          }`}>Family</span>
         </button>
 
         {/* History Button */}
         <button 
           onClick={() => setActivePanel(activePanel === 'history' ? null : 'history')}
-          className={`w-11 h-11 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+          className={`w-full flex flex-col items-center justify-center py-2 transition-all cursor-pointer ${
             activePanel === 'history' 
-              ? 'bg-indigo-100 text-indigo-600 shadow-sm' 
-              : 'hover:bg-indigo-50 text-gray-600 hover:text-indigo-600'
+              ? 'bg-blue-50' 
+              : 'hover:bg-slate-200'
           }`}
         >
-          <ClockIcon className="w-5 h-5" />
+          <ClockIcon className={`w-5 h-5 ${
+            activePanel === 'history' ? 'text-blue-600' : 'text-gray-600'
+          }`} />
+          <span className={`text-[9px] font-medium mt-0.5 ${
+            activePanel === 'history' ? 'text-blue-600' : 'text-gray-600'
+          }`}>History</span>
         </button>
 
         {/* Spacer */}
         <div className="flex-grow" />
 
+        {/* Voice Recognition Button */}
+        <button
+          onClick={onToggleVoice}
+          className={`w-full flex flex-col items-center justify-center py-2 transition-all duration-300 ease-out cursor-pointer ${
+            isListening
+              ? 'bg-red-50'
+              : 'hover:bg-slate-200'
+          }`}
+          title={isListening ? 'Stop listening' : 'Voice command'}
+        >
+          <MicrophoneIcon className={`w-5 h-5 ${
+            isListening ? 'text-red-500 animate-pulse' : 'text-gray-600'
+          }`} />
+          <span className={`text-[9px] font-medium mt-0.5 ${
+            isListening ? 'text-red-500' : 'text-gray-600'
+          }`}>Voice</span>
+        </button>
+
+        {/* Help Button */}
+        <button 
+          onClick={() => setActivePanel(activePanel === 'help' ? null : 'help')}
+          className={`w-full flex flex-col items-center justify-center py-2 transition-all cursor-pointer ${
+            activePanel === 'help' 
+              ? 'bg-blue-50' 
+              : 'hover:bg-slate-200'
+          }`}
+        >
+          <QuestionMarkCircleIcon className={`w-5 h-5 ${
+            activePanel === 'help' ? 'text-blue-600' : 'text-gray-600'
+          }`} />
+          <span className={`text-[9px] font-medium mt-0.5 ${
+            activePanel === 'help' ? 'text-blue-600' : 'text-gray-600'
+          }`}>Help</span>
+        </button>
+
         {/* Dark Mode Toggle with Drop-up */}
-        <div className="relative">
+        <div className="relative w-full">
           <button 
             onClick={(e) => {
               e.stopPropagation();
               setShowThemeDropup(!showThemeDropup);
             }}
-            className={`w-11 h-11 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+            className={`w-full flex flex-col items-center justify-center py-2 transition-all cursor-pointer ${
               showThemeDropup
-                ? 'bg-gray-200 text-gray-800'
-                : 'hover:bg-gray-100 text-gray-600 hover:text-gray-800'
+                ? 'bg-blue-50'
+                : 'hover:bg-slate-200'
             }`}
           >
             {selectedTheme === 'light' ? (
-              <SunIcon className="w-5 h-5" />
+              <SunIcon className={`w-5 h-5 ${showThemeDropup ? 'text-blue-600' : 'text-gray-600'}`} />
             ) : selectedTheme === 'dark' ? (
-              <MoonIcon className="w-5 h-5" />
+              <MoonIcon className={`w-5 h-5 ${showThemeDropup ? 'text-blue-600' : 'text-gray-600'}`} />
             ) : (
-              <ComputerDesktopIcon className="w-5 h-5" />
+              <ComputerDesktopIcon className={`w-5 h-5 ${showThemeDropup ? 'text-blue-600' : 'text-gray-600'}`} />
             )}
+            <span className={`text-[9px] font-medium mt-0.5 ${
+              showThemeDropup ? 'text-blue-600' : 'text-gray-600'
+            }`}>Theme</span>
           </button>
 
           {/* Drop-up Theme Menu */}
@@ -311,66 +411,25 @@ function SidePanel({ notifications, onCloseNotification, onViewLocation, onNavig
           )}
         </div>
 
-        {/* Help Button */}
-        <button 
-          onClick={() => setActivePanel(activePanel === 'help' ? null : 'help')}
-          className={`w-11 h-11 rounded-full flex items-center justify-center transition-all cursor-pointer ${
-            activePanel === 'help' 
-              ? 'bg-green-100 text-green-600 shadow-sm' 
-              : 'hover:bg-green-50 text-gray-600 hover:text-green-600'
-          }`}
-        >
-          <QuestionMarkCircleIcon className="w-5 h-5" />
-        </button>
-
-        {/* Profile Button */}
-        <button 
-          onClick={() => setActivePanel(activePanel === 'settings' ? null : 'settings')}
-          className={`w-11 h-11 rounded-full overflow-hidden hover:shadow-lg transition-all flex items-center justify-center relative cursor-pointer ${
-            activePanel === 'settings' 
-              ? 'ring-2 ring-blue-500 shadow-md' 
-              : parentHelpActive 
-                ? 'ring-2 ring-red-500 ring-offset-2 shadow-md' 
-                : 'shadow-sm hover:shadow-md'
-          }`}
-        >
-          {userProfile.photoUrl ? (
-            <img 
-              src={userProfile.photoUrl} 
-              alt=""
-              className="w-full h-full object-cover"
-              referrerPolicy="no-referrer"
-              crossOrigin="anonymous"
-              onError={(e) => {
-                e.target.style.display = 'none';
-              }}
-            />
-          ) : null}
-          {!userProfile.photoUrl && (
-            <div className={`w-full h-full flex items-center justify-center ${
-              parentHelpActive ? 'bg-red-500' : 'bg-blue-600'
-            }`}>
-              <span className="text-white text-sm font-bold">
-                {userProfile.name.charAt(0)}
-              </span>
-            </div>
-          )}
-        </button>
-
         {/* Logout Button with Drop-up */}
-        <div className="relative">
+        <div className="relative w-full">
           <button 
             onClick={(e) => {
               e.stopPropagation();
               setShowLogoutDropup(!showLogoutDropup);
             }}
-            className={`w-11 h-11 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+            className={`w-full flex flex-col items-center justify-center py-2 transition-all cursor-pointer ${
               showLogoutDropup
-                ? 'bg-gray-200 text-gray-800'
-                : 'hover:bg-gray-100 text-gray-600 hover:text-gray-800'
+                ? 'bg-blue-50'
+                : 'hover:bg-slate-200'
             }`}
           >
-            <ArrowRightStartOnRectangleIcon className="w-5 h-5" />
+            <ArrowRightStartOnRectangleIcon className={`w-5 h-5 ${
+              showLogoutDropup ? 'text-blue-600' : 'text-gray-600'
+            }`} />
+            <span className={`text-[9px] font-medium mt-0.5 ${
+              showLogoutDropup ? 'text-blue-600' : 'text-gray-600'
+            }`}>Logout</span>
           </button>
 
           {/* Drop-up Logout Confirmation */}
@@ -404,14 +463,14 @@ function SidePanel({ notifications, onCloseNotification, onViewLocation, onNavig
                       setShowLogoutDropup(false);
                       onSignOut();
                     }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all text-left hover:bg-gray-50 text-gray-700 cursor-pointer"
+                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all text-left hover:bg-red-50 text-red-600 cursor-pointer"
                   >
-                    <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
-                      <ArrowRightStartOnRectangleIcon className="w-4 h-4 text-gray-600" />
+                    <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                      <ArrowRightStartOnRectangleIcon className="w-4 h-4 text-red-600" />
                     </div>
                     <div className="flex-1">
                       <p className="text-[10px] font-bold">Sign Out</p>
-                      <p className="text-[9px] text-gray-500">Sign in again later</p>
+                      <p className="text-[9px] text-red-500">Sign in again later</p>
                     </div>
                   </button>
                 </div>
@@ -430,58 +489,75 @@ function SidePanel({ notifications, onCloseNotification, onViewLocation, onNavig
       <div className={`md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-100 z-[70] safe-area-pb transition-all duration-300 shadow-lg ${
         activePanel ? 'translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'
       }`}>
-        <div className="flex items-center justify-around px-2 py-2">
+        <div className="flex items-center justify-around px-2 py-1.5">
           {/* Notification Bell */}
           <button 
             onClick={handleNotificationClick}
-            className={`relative p-3 rounded-full transition-all cursor-pointer ${
+            className={`relative flex flex-col items-center py-1.5 px-2 rounded-lg transition-all cursor-pointer ${
               activePanel === 'notifications' 
-                ? 'bg-blue-100 text-blue-600' 
-                : 'text-gray-600 hover:bg-blue-50 hover:text-blue-600'
+                ? 'bg-blue-50' 
+                : ''
             }`}
           >
-            <BellIcon className="w-5 h-5" />
-            {unreadCount > 0 && (
-              <span className="absolute top-0 right-0 min-w-[16px] h-[16px] bg-red-500 text-white text-[9px] rounded-full flex items-center justify-center font-semibold px-0.5">
-                {unreadCount}
-              </span>
-            )}
+            <div className="relative">
+              <BellIcon className={`w-5 h-5 ${
+                activePanel === 'notifications' ? 'text-blue-600' : 'text-gray-600'
+              }`} />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] bg-red-500 text-white text-[8px] rounded-full flex items-center justify-center font-semibold px-0.5">
+                  {unreadCount}
+                </span>
+              )}
+            </div>
+            <span className={`text-[9px] font-medium mt-0.5 ${
+              activePanel === 'notifications' ? 'text-blue-600' : 'text-gray-600'
+            }`}>Alerts</span>
           </button>
 
           {/* Family Button */}
           <button 
             onClick={() => setActivePanel(activePanel === 'family' ? null : 'family')}
-            className={`p-3 rounded-full transition-all cursor-pointer ${
+            className={`flex flex-col items-center py-1.5 px-2 rounded-lg transition-all cursor-pointer ${
               activePanel === 'family' 
-                ? 'bg-purple-100 text-purple-600' 
-                : 'text-gray-600 hover:bg-purple-50 hover:text-purple-600'
+                ? 'bg-blue-50' 
+                : ''
             }`}
           >
-            <UserGroupIcon className="w-5 h-5" />
+            <UserGroupIcon className={`w-5 h-5 ${
+              activePanel === 'family' ? 'text-blue-600' : 'text-gray-600'
+            }`} />
+            <span className={`text-[9px] font-medium mt-0.5 ${
+              activePanel === 'family' ? 'text-blue-600' : 'text-gray-600'
+            }`}>Family</span>
           </button>
 
           {/* Help Button - Center - Elevated */}
           <button 
             onClick={onOpenHelpMenu}
             disabled={isHelpOnCooldown}
-            className={`relative p-3 rounded-full transition-all -mt-6 shadow-lg ${
+            className={`relative flex items-center justify-center w-14 h-14 rounded-full transition-all -mt-8 shadow-xl ${
               isHelpOnCooldown
-                ? 'bg-slate-600 text-white cursor-not-allowed'
+                ? 'bg-slate-600 cursor-not-allowed'
                 : emergencyMenuOpen
-                  ? 'bg-gray-700 text-white hover:bg-gray-800 cursor-pointer hover:scale-110 active:scale-95'
-                  : 'bg-blue-600 text-white hover:bg-blue-700 cursor-pointer hover:scale-110 active:scale-95'
+                  ? 'bg-gray-700 hover:bg-gray-800 cursor-pointer hover:scale-110 active:scale-95'
+                  : 'bg-white cursor-pointer hover:scale-110 active:scale-95'
             }`}
           >
             {isHelpOnCooldown ? (
-              <ClockIcon className="w-6 h-6" />
+              <ClockIcon className="w-7 h-7 text-white" />
             ) : emergencyMenuOpen ? (
-              <XMarkIcon className="w-6 h-6" />
+              <XMarkIcon className="w-7 h-7 text-white" />
             ) : (
-              <FontAwesomeIcon icon={faHandshake} className="w-6 h-6" />
+              <HandRaisedIcon className="w-7 h-7 text-gray-600" />
             )}
             {isHelpOnCooldown && cooldownTime && (
               <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[8px] font-bold bg-slate-700 text-white px-1 rounded whitespace-nowrap">
                 {cooldownTime}
+              </span>
+            )}
+            {!isHelpOnCooldown && (
+              <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[9px] font-medium text-gray-600 whitespace-nowrap">
+                Help
               </span>
             )}
           </button>
@@ -489,53 +565,63 @@ function SidePanel({ notifications, onCloseNotification, onViewLocation, onNavig
           {/* History Button */}
           <button 
             onClick={() => setActivePanel(activePanel === 'history' ? null : 'history')}
-            className={`p-3 rounded-full transition-all cursor-pointer ${
+            className={`flex flex-col items-center py-1.5 px-2 rounded-lg transition-all cursor-pointer ${
               activePanel === 'history' 
-                ? 'bg-indigo-100 text-indigo-600' 
-                : 'text-gray-600 hover:bg-indigo-50 hover:text-indigo-600'
+                ? 'bg-blue-50' 
+                : ''
             }`}
           >
-            <ClockIcon className="w-5 h-5" />
+            <ClockIcon className={`w-5 h-5 ${
+              activePanel === 'history' ? 'text-blue-600' : 'text-gray-600'
+            }`} />
+            <span className={`text-[9px] font-medium mt-0.5 ${
+              activePanel === 'history' ? 'text-blue-600' : 'text-gray-600'
+            }`}>History</span>
           </button>
 
           {/* Profile Button */}
           <button 
             onClick={() => setActivePanel(activePanel === 'settings' ? null : 'settings')}
-            className={`w-10 h-10 rounded-full overflow-hidden transition-all cursor-pointer ${
+            className="flex flex-col items-center py-1.5 px-2 rounded-lg transition-all cursor-pointer"
+          >
+            <div className={`w-8 h-8 rounded-full overflow-hidden transition-all ${
               activePanel === 'settings' 
                 ? 'ring-2 ring-blue-500 shadow-sm' 
                 : parentHelpActive 
-                  ? 'ring-2 ring-red-500 ring-offset-1' 
+                  ? 'ring-2 ring-red-500' 
                   : 'shadow-sm'
-            }`}
-          >
-            {userProfile.photoUrl ? (
-              <img 
-                src={userProfile.photoUrl} 
-                alt=""
-                className="w-full h-full object-cover"
-                referrerPolicy="no-referrer"
-                crossOrigin="anonymous"
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                }}
-              />
-            ) : null}
-            {!userProfile.photoUrl && (
-              <div className={`w-full h-full flex items-center justify-center ${
-                parentHelpActive ? 'bg-red-500' : 'bg-blue-600'
-              }`}>
-                <span className="text-white text-xs font-bold">
-                  {userProfile.name.charAt(0)}
-                </span>
-              </div>
-            )}
+            }`}>
+              {userProfile.photoUrl ? (
+                <img 
+                  src={userProfile.photoUrl} 
+                  alt=""
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                  crossOrigin="anonymous"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                  }}
+                />
+              ) : null}
+              {!userProfile.photoUrl && (
+                <div className={`w-full h-full flex items-center justify-center ${
+                  parentHelpActive ? 'bg-red-500' : 'bg-blue-600'
+                }`}>
+                  <span className="text-white text-xs font-bold">
+                    {userProfile.name.charAt(0)}
+                  </span>
+                </div>
+              )}
+            </div>
+            <span className={`text-[9px] font-medium mt-0.5 ${
+              activePanel === 'settings' ? 'text-blue-600' : 'text-gray-600'
+            }`}>Profile</span>
           </button>
         </div>
       </div>
 
       {/* Desktop: Expandable Content Panel - Fixed to right, next to rail */}
-      <div className={`hidden md:block fixed right-16 top-0 h-screen bg-white border-l border-gray-100 transition-all duration-300 ease-in-out overflow-hidden z-[60] ${
+      <div className={`hidden md:block fixed right-20 top-0 h-screen bg-white border-l border-gray-100 transition-all duration-300 ease-in-out overflow-hidden z-[60] ${
         activePanel ? 'w-[360px]' : 'w-0'
       }`}>
         <div className="w-[360px] h-full">

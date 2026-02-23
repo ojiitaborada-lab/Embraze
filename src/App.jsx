@@ -40,6 +40,7 @@ function App() {
   const [helpCooldown, setHelpCooldown] = useState({ isOnCooldown: false, timeLeft: null });
   const [emergencyMenuOpen, setEmergencyMenuOpen] = useState(false);
   const [activeSidePanel, setActiveSidePanel] = useState(null);
+  const [isVoiceListening, setIsVoiceListening] = useState(false);
   
   const [history, setHistory] = useState([]);
   
@@ -470,6 +471,7 @@ function App() {
             onCooldownChange={setHelpCooldown}
             onEmergencyMenuChange={setEmergencyMenuOpen}
             activeSidePanel={activeSidePanel}
+            onVoiceListeningChange={setIsVoiceListening}
           />
         </div>
         <SidePanel 
@@ -501,6 +503,8 @@ function App() {
           cooldownTime={helpCooldown.timeLeft}
           emergencyMenuOpen={emergencyMenuOpen}
           onPanelChange={setActiveSidePanel}
+          onToggleVoice={() => mapViewRef.current?.toggleVoiceRecognition()}
+          isListening={isVoiceListening}
         />
       </div>
     </div>

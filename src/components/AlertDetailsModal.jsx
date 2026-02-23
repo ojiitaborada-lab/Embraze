@@ -125,11 +125,11 @@ function AlertDetailsModal({ isOpen, onClose, alert }) {
               {/* Photo Carousel - Instagram/Facebook style */}
               <div className="relative bg-gray-900">
                 {/* Main Photo */}
-                <div className="relative w-full" style={{ maxHeight: '300px' }}>
+                <div className="relative w-full h-[300px] flex items-center justify-center">
                   <img 
                     src={alert.photos[currentPhotoIndex].url} 
                     alt={`Emergency scene ${currentPhotoIndex + 1}`}
-                    className="w-full h-auto max-h-[300px] object-contain cursor-pointer"
+                    className="w-full h-full object-contain cursor-pointer"
                     onClick={() => window.open(alert.photos[currentPhotoIndex].url, '_blank')}
                   />
                   
